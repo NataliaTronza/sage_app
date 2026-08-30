@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#E7E8E4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sage">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Готове збалансоване меню на кожен день: свайп страв, білок і клітковина, список продуктів.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Sage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7E8E4;--hi:#FFFFFF;--sh:#C2C4BE;--ink:#252723;--soft:#71756C;--faint:#9B9F96;
+  --sage:#C6CFB2;--sage-d:#A9B693;--black:#1F211D;--r:26px;
+  --up:6px 6px 12px var(--sh), -6px -6px 12px var(--hi);
+  --up-s:3px 3px 7px var(--sh), -3px -3px 7px var(--hi);
+  --in:inset 4px 4px 9px var(--sh), inset -4px -4px 9px var(--hi);
+  --in-s:inset 2px 2px 5px var(--sh), inset -2px -2px 5px var(--hi);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'Onest',system-ui,-apple-system,sans-serif;
+ -webkit-font-smoothing:antialiased;padding:env(safe-area-inset-top) 0 calc(104px + env(safe-area-inset-bottom));
+ overscroll-behavior-y:contain}
+.wrap{max-width:520px;margin:0 auto;padding:0 20px}
+.mono,.m{font-family:'JetBrains Mono',ui-monospace,monospace}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--sage-d);outline-offset:3px}
+
+/* header */
+.head{margin-top:22px;padding:20px 22px;border-radius:var(--r);background:var(--bg);box-shadow:var(--up);
+ display:flex;align-items:center;gap:16px}
+.head .l{flex:1;min-width:0}
+.day-num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:36px;line-height:1;letter-spacing:-.02em}
+.day-word{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-top:9px;font-family:'JetBrains Mono',monospace}
+.kcal{font-size:11px;color:var(--soft);margin-top:10px;font-family:'JetBrains Mono',monospace;line-height:1.6}
+.dial{position:relative;width:96px;height:96px;flex:none;border-radius:50%;background:var(--bg);box-shadow:var(--up)}
+.dial .core{position:absolute;inset:17px;border-radius:50%;background:var(--black);display:flex;flex-direction:column;
+ align-items:center;justify-content:center;box-shadow:inset 0 -2px 6px rgba(255,255,255,.14),3px 3px 8px rgba(0,0,0,.22)}
+.dial svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.dial .num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;color:#F2F3EE;line-height:1}
+.dial .lbl{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.14em;color:var(--sage);margin-top:3px;text-transform:uppercase}
+
+/* days strip */
+.days{display:flex;gap:9px;overflow-x:auto;padding:18px 2px 4px;margin:0 -2px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.dbtn{flex:0 0 auto;min-width:60px;padding:11px 12px;border-radius:19px;background:var(--bg);box-shadow:var(--up-s);
+ text-align:center;transition:box-shadow .15s}
+.dbtn .wd{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.dbtn .dd{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px;margin-top:5px}
+.dbtn.on{background:var(--sage);box-shadow:var(--in-s)}
+.dbtn.on .wd{color:#5C6650}
+.dbtn.on .dd{color:#2E3428}
+.dbtn .dot{width:5px;height:5px;border-radius:50%;background:var(--sage-d);margin:5px auto 0;opacity:0}
+.dbtn.has .dot{opacity:1}
+.dbtn.on .dot{background:#5C6650}
+
+/* achievements */
+.ach{margin-top:20px;padding:18px;border-radius:var(--r);background:var(--bg);box-shadow:var(--up)}
+.ach h4{margin:0 0 14px;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft);font-weight:500}
+.badges{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.bdg{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:17px;box-shadow:var(--in-s);opacity:.6}
+.bdg.on{background:var(--sage);box-shadow:none;opacity:1}
+.bdg .ic{font-size:15px;line-height:1}
+.bdg .tx{font-size:11.5px;line-height:1.3}
+.bdg .tx b{display:block;font-weight:500;font-size:12.5px}
+.bdg .tx span{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--faint);letter-spacing:.06em}
+.bdg.on .tx span{color:#5C6650}
+.plants{display:flex;align-items:center;gap:14px;margin-top:14px;padding:14px;border-radius:19px;box-shadow:var(--in-s)}
+.plants .big{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:26px;line-height:1}
+.plants .big small{font-size:12px;color:var(--faint);font-weight:400}
+.plants .t{flex:1;font-size:12px;color:var(--soft);line-height:1.45}
+.pbar{height:6px;border-radius:6px;background:#D5D7D0;margin-top:8px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--sage-d);border-radius:6px;transition:width .4s}
+.tip{margin-top:14px;padding:14px 16px;border-radius:19px;box-shadow:var(--in-s);font-size:12.5px;line-height:1.55;color:var(--soft)}
+
+/* slots */
+.slot{margin-top:26px}
+.slot-head{display:flex;align-items:center;gap:12px;margin:0 8px 12px}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.rule{flex:1;height:2px;border-radius:2px;box-shadow:var(--in-s)}
+.p-note{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--faint)}
+.stack{position:relative;touch-action:pan-y}
+.ghost{position:absolute;left:14px;right:14px;top:14px;bottom:-8px;border-radius:var(--r);background:var(--bg);box-shadow:var(--up-s);opacity:.7}
+.card{position:relative;border-radius:var(--r);background:var(--bg);box-shadow:var(--up);padding:16px;
+ transition:transform .28s cubic-bezier(.22,1,.36,1),opacity .2s,box-shadow .2s;will-change:transform}
+.card.swiping{transition:none}
+.card.locked{box-shadow:var(--up),0 0 0 2px var(--sage) inset}
+.frame{border-radius:18px;padding:6px;box-shadow:var(--in);margin-bottom:14px}
+.photo{display:block;width:100%;height:158px;object-fit:cover;border-radius:13px}
+.dish{font-size:21px;font-weight:500;line-height:1.25;margin:2px 2px 0;letter-spacing:-.01em}
+.note{margin:7px 2px 0;font-size:13px;line-height:1.5;color:var(--soft);font-weight:300}
+.meta{display:flex;gap:8px;margin:14px 2px 0;flex-wrap:wrap}
+.tag{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;padding:7px 12px;border-radius:999px;
+ background:var(--bg);box-shadow:var(--in-s);color:var(--soft)}
+.tag.prot{background:var(--sage);box-shadow:none;color:#3A4230}
+.tag.mine{color:var(--sage-d)}
+.actions{display:flex;gap:10px;margin-top:16px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:17px;background:var(--bg);
+ box-shadow:var(--up-s);font-size:14px;font-weight:500;color:var(--ink);transition:box-shadow .13s}
+.btn:active{box-shadow:var(--in-s)}
+.btn svg{width:17px;height:17px;flex:none}
+.actions .btn{flex:1}
+.actions .btn.ic{flex:0 0 48px}
+.extra{width:100%;height:42px;border-radius:15px;box-shadow:var(--in-s);margin-top:10px;font-family:'JetBrains Mono',monospace;
+ font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--soft);display:flex;align-items:center;justify-content:center;gap:8px}
+.extra:active{box-shadow:var(--up-s)}
+.dbtn.copy{min-width:50px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft)}
+.prod .home{flex:none;width:30px;height:30px;border-radius:10px;box-shadow:var(--up-s);display:flex;align-items:center;
+ justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--faint);letter-spacing:.04em}
+.prod.pantry{opacity:.5}
+.prod.pantry .home{background:var(--sage);box-shadow:none;color:#33392B}
+.copyrow{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:19px;box-shadow:var(--up-s);margin-bottom:10px;width:100%;text-align:left}
+.copyrow .cd{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;flex:none;width:46px}
+.copyrow .cn{flex:1;min-width:0;font-size:12.5px;color:var(--soft);line-height:1.45}
+.sec-t{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:26px 0 12px 4px}
+.btn.keep{background:var(--sage);box-shadow:4px 4px 9px var(--sh),-4px -4px 9px var(--hi);color:#33392B}
+.btn.keep:active{box-shadow:inset 3px 3px 7px #A2AD8D,inset -3px -3px 7px #E1E9CE}
+.locked-bar{display:flex;align-items:center;gap:9px;margin-top:16px;padding:12px 16px;border-radius:17px;box-shadow:var(--in-s);font-size:13.5px;color:#495041}
+.locked-bar .change{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.hint{text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;color:var(--faint);margin:22px 0 0}
+
+/* bar */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:12px 20px calc(14px + env(safe-area-inset-bottom));
+ background:linear-gradient(180deg,rgba(231,232,228,0),var(--bg) 42%)}
+.bar-inner{max-width:520px;margin:0 auto;display:flex;gap:10px}
+.bar .btn{flex:1;height:54px;font-size:13px}
+.bar .btn.dark{background:var(--black);color:#EFF0EB;box-shadow:5px 5px 11px var(--sh),-5px -5px 11px var(--hi)}
+.bar .btn.dark:active{box-shadow:inset 3px 3px 7px #000,inset -2px -2px 6px #3A3D37}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(40,42,38,.32);opacity:0;pointer-events:none;transition:opacity .25s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--bg);border-radius:30px 30px 0 0;
+ transform:translateY(101%);transition:transform .32s cubic-bezier(.22,1,.36,1);max-height:88vh;overflow-y:auto;
+ padding:0 20px calc(26px + env(safe-area-inset-bottom));box-shadow:0 -14px 30px rgba(150,152,145,.5)}
+.sheet.on{transform:translateY(0)}
+.sheet-inner{max-width:520px;margin:0 auto}
+.grab{width:44px;height:5px;border-radius:99px;box-shadow:var(--in-s);margin:12px auto 6px}
+.sheet h2{font-size:22px;font-weight:600;margin:12px 0 4px}
+.sub{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:16px}
+label.f{display:block;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:18px 0 8px}
+input[type=text],input[type=number]{width:100%;height:52px;border-radius:17px;border:0;background:var(--bg);box-shadow:var(--in);
+ padding:0 18px;font-family:inherit;font-size:15px;color:var(--ink)}
+input::placeholder{color:#AEB2A9}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:11px 16px;border-radius:999px;background:var(--bg);box-shadow:var(--up-s);font-size:13.5px;color:var(--soft)}
+.chip.on{background:var(--sage);color:#33392B;box-shadow:var(--in-s)}
+.thumb{width:100%;height:150px;object-fit:cover;border-radius:16px;margin-top:10px;display:none}
+.thumb.on{display:block}
+.wide{width:100%;height:54px;margin-top:24px}
+.wide.sage{background:var(--sage);color:#33392B}
+.grp{margin-top:22px}
+.grp h3{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);font-weight:500;margin:0 0 10px 4px}
+.prod{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:18px;background:var(--bg);box-shadow:var(--up-s);margin-bottom:9px;width:100%;text-align:left}
+.prod .box{width:22px;height:22px;border-radius:8px;box-shadow:var(--in-s);flex:none;display:flex;align-items:center;justify-content:center}
+.prod.done .box{background:var(--sage);box-shadow:none}
+.prod .box svg{width:13px;height:13px;color:#33392B;opacity:0}
+.prod.done .box svg{opacity:1}
+.prod .n{flex:1;font-size:15px}
+.prod .q{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint)}
+.prod.done .n{color:var(--faint);text-decoration:line-through}
+.mine-row{display:flex;align-items:center;gap:13px;padding:11px;border-radius:20px;box-shadow:var(--up-s);margin-bottom:10px}
+.mine-row img,.mine-row .ph{width:46px;height:46px;border-radius:14px;object-fit:cover;flex:none;box-shadow:var(--in-s)}
+.mine-row .nm{flex:1;min-width:0;font-size:15px}
+.mine-row .nm small{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.mine-row .del{color:var(--faint);font-size:19px;padding:8px 10px;line-height:1}
+.empty{color:var(--soft);font-size:14px;line-height:1.6;padding:10px 4px 0}
+.toast{position:fixed;left:50%;bottom:104px;transform:translate(-50%,14px);background:var(--black);color:#EFF0EB;padding:12px 20px;
+ border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:.24s;z-index:60}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="head">
+    <div class="l">
+      <div class="day-num m" id="dnum"></div>
+      <div class="day-word" id="dword"></div>
+      <div class="kcal" id="kcal"></div>
+    </div>
+    <div class="dial" aria-hidden="true">
+      <svg width="96" height="96" viewBox="0 0 96 96">
+        <circle cx="48" cy="48" r="40" fill="none" stroke="#D5D7D0" stroke-width="4"/>
+        <circle id="arc" cx="48" cy="48" r="40" fill="none" stroke="#A9B693" stroke-width="4" stroke-linecap="round"
+          stroke-dasharray="251" stroke-dashoffset="251" style="transition:stroke-dashoffset .5s cubic-bezier(.22,1,.36,1)"/>
+      </svg>
+      <div class="core"><span class="num" id="pnum">0</span><span class="lbl">білок</span></div>
+    </div>
+  </div>
+
+  <div class="days" id="days"></div>
+
+  <div class="ach">
+    <h4>Ачівки дня</h4>
+    <div class="badges" id="badges"></div>
+    <div class="plants">
+      <div class="big"><span id="plantN">0</span><small>/30</small></div>
+      <div class="t">різних рослин за 7 днів
+        <div class="pbar"><i id="plantBar" style="width:0%"></i></div>
+      </div>
+    </div>
+    <div class="tip" id="tip"></div>
+  </div>
+
+  <div id="slots"></div>
+  <p class="hint">свайп убік — інша страва</p>
+</div>
+
+<div class="bar"><div class="bar-inner">
+  <button class="btn dark" id="newDay">Нове меню</button>
+  <button class="btn" id="openProd">Продукти</button>
+  <button class="btn" id="openMine">Мої страви</button>
+</div></div>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="sheet" id="sheetProd" role="dialog" aria-label="Список продуктів">
+  <div class="sheet-inner">
+    <div class="grab"></div>
+    <h2>Список продуктів</h2>
+    <div class="sub" id="prodSub"></div>
+    <div class="chips" id="scopeChips"></div>
+    <div id="prodList"></div>
+    <button class="btn wide" id="copyProd">Скопіювати список</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheetCopy" role="dialog" aria-label="Копіювати день">
+  <div class="sheet-inner">
+    <div class="grab"></div>
+    <h2>Скопіювати день</h2>
+    <div class="sub" id="copySub"></div>
+    <div id="copyList"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sheetMine" role="dialog" aria-label="Мої страви">
+  <div class="sheet-inner">
+    <div class="grab"></div>
+    <h2>Мої страви</h2>
+    <div class="sub">зʼявляються серед варіантів</div>
+    <div id="mineList"></div>
+    <button class="btn wide sage" id="addNew">Додати страву</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheetAdd" role="dialog" aria-label="Своя страва">
+  <div class="sheet-inner">
+    <div class="grab"></div>
+    <h2>Своя страва</h2>
+    <div class="sub">назва, прийом їжі, фото</div>
+    <label class="f" for="fName">Назва</label>
+    <input type="text" id="fName" placeholder="Мамині сирники" autocomplete="off">
+    <label class="f">Прийом їжі</label>
+    <div class="chips" id="fType"></div>
+    <label class="f" for="fIng">Продукти через кому</label>
+    <input type="text" id="fIng" placeholder="сир, яйця, борошно" autocomplete="off">
+    <label class="f" for="fProt">Білок, г</label>
+    <input type="number" id="fProt" inputmode="numeric" placeholder="необовʼязково" min="0" max="200">
+    <label class="f">Фото</label>
+    <button class="btn wide" id="fPhotoBtn" style="margin-top:0">Обрати фото</button>
+    <img class="thumb" id="fThumb" alt="">
+    <button class="btn wide sage" id="fSave">Зберегти страву</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="filePick" accept="image/*" hidden>
+
+<script>
+/* сховище */
+const mem={};
+const store={
+  async get(k){ if(window.storage){try{const r=await window.storage.get(k,false);return r?r.value:null}catch(e){return null}}
+    try{return localStorage.getItem(k)}catch(e){return mem[k]??null} },
+  async set(k,v){ if(window.storage){try{await window.storage.set(k,v,false)}catch(e){} return}
+    try{localStorage.setItem(k,v)}catch(e){mem[k]=v} }
+};
+const TYPES=[{key:'breakfast',label:'Сніданок'},{key:'lunch',label:'Обід'},{key:'dinner',label:'Вечеря'},{key:'snack',label:'Перекус'}];
+
+/* продукти: [клітковина на 100 г або на штуку, група] */
+const V='v',F='f',G='g',P='p',DR='d';
+const ING={
+ 'яйця':[0,P],'сир кисломолочний':[0,DR],'грецький йогурт':[0,DR],'кефір':[0,DR],'ряжанка':[0,DR],'молоко':[0,DR],
+ 'вершки':[0,DR],'фета':[0,DR],'бринза':[0,DR],'сир твердий':[0,DR],'сметана':[0,DR],
+ 'куряче філе':[0,P],'філе індички':[0,P],'фарш індички':[0,P],'яловичина':[0,P],'телятина':[0,P],'лосось':[0,P],
+ 'лосось слабосолений':[0,P],'скумбрія':[0,P],'тунець консервований':[0,P],'філе білої риби':[0,P],'креветки':[0,P],
+ 'тофу':[1,G],'едамаме':[5,G],
+ 'шпинат':[2.2,V],'помідори':[1.2,V],'огірки':[.8,V],'морква':[1.7,V],'цибуля':[1.5,V],'часник':[.1,V],
+ 'броколі':[2.6,V],'капуста':[2.5,V],'квашена капуста':[3,V],'картопля':[2.2,V],'батат':[3,V],'кабачок':[1.5,V],
+ 'перець солодкий':[2,V],'селера':[1.6,V],'листя салату':[1.3,V],'зелень':[3,V],'кріп':[3,V],'печериці':[1,V],
+ 'спаржа':[2,V],'паростки квасолі':[1.8,V],'оливки':[3,V],'імбир':[2,V],'авокадо':[9,V],'кукурудза':[2.7,V],
+ 'лимон':[2.4,F],'банан':[3,F],'яблуко':[4,F],'груша':[5.5,F],'ягоди':[2.5,F],'фініки':[7,F],
+ 'вівсяні пластівці':[10,G],'гречка':[10,G],'рис':[1.5,G],'булгур':[12,G],'кіноа':[7,G],'паста':[3,G],
+ 'борошно':[3,G],'вівсяне борошно':[8,G],'манка':[2,G],'житній хліб':[1.8,G],'тортильї':[2,G],'хлібці':[1.5,G],
+ 'нут':[7,G],'квасоля біла':[6,G],'квасоля червона':[6,G],'сочевиця':[8,G],'волоські горіхи':[6.7,G],
+ 'насіння чіа':[34,G],'насіння соняшника':[8.6,G],'арахісова паста':[6,G],'хумус':[6,G],'кунжут':[12,G],'мед':[0,''],
+ 'соєвий соус':[0,''],'манго':[1.6,F]
+};
+const MEAT='мʼясо, риба, білок',DAIRY='молочне та яйця',VEG='овочі й фрукти',GROC='крупи, хліб, бакалія';
+const ORDER=[MEAT,DAIRY,VEG,GROC];
+function catOf(n){const g=(ING[n]||['',''])[1];if(g===P)return MEAT;if(g===DR)return DAIRY;if(g===V||g===F)return VEG;return GROC}
+
+const D=(id,type,name,note,prot,kcal,ing)=>({id,type,name,note,prot,kcal,ing});
+const BASE=[
+D('b1','breakfast','Омлет зі шпинатом і фетою','Три яйця, шпинат, трохи фети',26,380,[['яйця',3,'шт'],['шпинат',100,'г'],['фета',40,'г']]),
+D('b2','breakfast','Грецький йогурт з ягодами','Йогурт, ягоди, волоські горіхи',24,340,[['грецький йогурт',250,'г'],['ягоди',100,'г'],['волоські горіхи',20,'г']]),
+D('b3','breakfast','Вівсянка з арахісовою пастою','На молоці, з бананом',22,430,[['вівсяні пластівці',60,'г'],['молоко',250,'мл'],['банан',1,'шт'],['арахісова паста',20,'г']]),
+D('b4','breakfast','Сирники','З нежирного сиру, зі сметаною',30,400,[['сир кисломолочний',250,'г'],['яйця',1,'шт'],['борошно',30,'г'],['сметана',40,'г']]),
+D('b5','breakfast','Тост з авокадо та яйцем','Житній хліб, авокадо, яйця пашот',21,390,[['житній хліб',2,'скиб'],['авокадо',1,'шт'],['яйця',2,'шт']]),
+D('b6','breakfast','Скрембл з лососем','Яйця, слабосолоний лосось, зелень',28,420,[['яйця',3,'шт'],['лосось слабосолений',60,'г'],['житній хліб',1,'скиб'],['зелень',10,'г']]),
+D('b7','breakfast','Сир з грушею і медом','Сир, груша, ложка меду',27,330,[['сир кисломолочний',200,'г'],['груша',1,'шт'],['мед',1,'ст.л.']]),
+D('b8','breakfast','Протеїновий смузі','Молоко, банан, вівсянка, паста',26,400,[['молоко',300,'мл'],['банан',1,'шт'],['вівсяні пластівці',30,'г'],['арахісова паста',20,'г']]),
+D('b9','breakfast','Шакшука з нутом','Яйця в томатах, нут, зелень',24,380,[['яйця',2,'шт'],['помідори',300,'г'],['нут',100,'г'],['цибуля',1,'шт']]),
+D('b10','breakfast','Вівсяні млинці з сиром','Вівсяне борошно, сирна начинка',26,420,[['вівсяне борошно',80,'г'],['яйця',2,'шт'],['молоко',150,'мл'],['сир кисломолочний',100,'г']]),
+D('b11','breakfast','Яйця некруто з бринзою','Яйця, бринза, помідор, хліб',22,350,[['яйця',2,'шт'],['бринза',50,'г'],['помідори',1,'шт'],['житній хліб',1,'скиб']]),
+D('b12','breakfast','Гречка з яйцем і зеленню','Гречка, яйця, багато зелені',20,380,[['гречка',70,'г'],['яйця',2,'шт'],['зелень',20,'г']]),
+D('b13','breakfast','Чаша з йогуртом і чіа','Йогурт, чіа, насіння, ягоди',21,360,[['грецький йогурт',200,'г'],['насіння чіа',15,'г'],['ягоди',80,'г'],['насіння соняшника',10,'г']]),
+D('b14','breakfast','Сирна запіканка','Сир, яйця, ягоди зверху',29,390,[['сир кисломолочний',300,'г'],['яйця',2,'шт'],['манка',30,'г'],['ягоди',80,'г']]),
+D('l1','lunch','Куряче філе гриль з булгуром','Філе, булгур, свіжий салат',42,520,[['куряче філе',180,'г'],['булгур',70,'г'],['огірки',1,'шт'],['помідори',1,'шт']]),
+D('l2','lunch','Суп із сочевиці з куркою','Сочевиця, курка, морква, селера',32,450,[['сочевиця',80,'г'],['куряче філе',150,'г'],['морква',1,'шт'],['селера',50,'г']]),
+D('l3','lunch','Боул з тунцем','Рис, тунець, огірок, кукурудза',38,510,[['тунець консервований',150,'г'],['рис',70,'г'],['огірки',1,'шт'],['кукурудза',80,'г']]),
+D('l4','lunch','Індичка з гречкою','Тушкована індичка, гречка, овочі',40,500,[['філе індички',180,'г'],['гречка',70,'г'],['морква',1,'шт'],['цибуля',1,'шт']]),
+D('l5','lunch','Паста з куркою і броколі','Паста, курка, броколі, вершки',36,560,[['паста',80,'г'],['куряче філе',150,'г'],['броколі',150,'г'],['вершки',50,'мл']]),
+D('l6','lunch','Салат з нутом і фетою','Нут, фета, яйце, зелень',28,470,[['нут',150,'г'],['фета',50,'г'],['яйця',1,'шт'],['листя салату',60,'г']]),
+D('l7','lunch','Рибні котлети з картоплею','Котлети з білої риби, салат',34,500,[['філе білої риби',200,'г'],['картопля',300,'г'],['яйця',1,'шт'],['листя салату',50,'г']]),
+D('l8','lunch','Курячий суп з квасолею','Курка, біла квасоля, овочі',30,430,[['куряче філе',150,'г'],['квасоля біла',100,'г'],['морква',1,'шт'],['картопля',200,'г']]),
+D('l9','lunch','Тепла яловичина з кіноа','Яловичина, кіноа, печені овочі',40,540,[['яловичина',170,'г'],['кіноа',70,'г'],['перець солодкий',1,'шт'],['кабачок',1,'шт']]),
+D('l10','lunch','Плов з індичкою','Рис, індичка, морква, спеції',35,550,[['філе індички',180,'г'],['рис',80,'г'],['морква',2,'шт'],['цибуля',1,'шт']]),
+D('l11','lunch','Лосось з бататом','Запечений лосось, батат, зелень',34,540,[['лосось',160,'г'],['батат',250,'г'],['зелень',10,'г']]),
+D('l12','lunch','Тако з куркою і квасолею','Тортильї, курка, квасоля, овочі',33,520,[['тортильї',2,'шт'],['куряче філе',150,'г'],['квасоля червона',100,'г'],['помідори',1,'шт']]),
+D('l13','lunch','Рагу з телятиною','Телятина, кабачок, перець',36,490,[['телятина',170,'г'],['кабачок',1,'шт'],['перець солодкий',1,'шт'],['помідори',200,'г']]),
+D('l14','lunch','Боул з тофу','Тофу, рис, овочі, кунжут',26,480,[['тофу',200,'г'],['рис',70,'г'],['морква',1,'шт'],['соєвий соус',2,'ст.л.']]),
+D('d1','dinner','Запечена риба з овочами','Біла риба, овочі, лимон',34,380,[['філе білої риби',200,'г'],['броколі',150,'г'],['морква',1,'шт'],['лимон',1,'шт']]),
+D('d2','dinner','Куряча грудка з капустою','Грудка, тушкована капуста, кріп',38,360,[['куряче філе',180,'г'],['капуста',300,'г'],['кріп',10,'г']]),
+D('d3','dinner','Омлет з овочами й бринзою','Яйця, перець, помідор, бринза',26,340,[['яйця',3,'шт'],['перець солодкий',1,'шт'],['помідори',1,'шт'],['бринза',40,'г']]),
+D('d4','dinner','Салат з куркою і яйцем','Йогуртова заправка, листя',32,400,[['куряче філе',150,'г'],['яйця',1,'шт'],['листя салату',80,'г'],['грецький йогурт',50,'г']]),
+D('d5','dinner','Індичка з броколі','Тушкована індичка, часник',36,370,[['філе індички',180,'г'],['броколі',200,'г'],['часник',2,'зуб']]),
+D('d6','dinner','Креветки з кіноа','Креветки, кіноа, шпинат',32,420,[['креветки',200,'г'],['кіноа',60,'г'],['шпинат',100,'г']]),
+D('d7','dinner','Запіканка з кабачків','Кабачки, фарш індички, сир',30,390,[['кабачок',2,'шт'],['фарш індички',200,'г'],['сир твердий',50,'г'],['яйця',1,'шт']]),
+D('d8','dinner','Тофу-вок з овочами','Тофу, перець, паростки, імбир',24,370,[['тофу',200,'г'],['перець солодкий',1,'шт'],['паростки квасолі',100,'г'],['імбир',10,'г']]),
+D('d9','dinner','Лосось зі спаржею','Стейк лосося, спаржа, лимон',34,430,[['лосось',170,'г'],['спаржа',200,'г'],['лимон',1,'шт']]),
+D('d10','dinner','Курячі котлети на парі','Котлети, свіжий салат',33,380,[['куряче філе',200,'г'],['цибуля',1,'шт'],['яйця',1,'шт'],['огірки',1,'шт']]),
+D('d11','dinner','Грецький салат з куркою','Овочі, фета, оливки',30,390,[['куряче філе',150,'г'],['фета',50,'г'],['помідори',2,'шт'],['огірки',1,'шт'],['оливки',50,'г']]),
+D('d12','dinner','Гречка з грибами і яйцем','Гречка, печериці, яйце',22,380,[['гречка',70,'г'],['печериці',200,'г'],['яйця',2,'шт']]),
+D('d13','dinner','Скумбрія з квашеною капустою','Печена скумбрія, капуста',30,420,[['скумбрія',200,'г'],['квашена капуста',200,'г'],['цибуля',1,'шт']]),
+D('d14','dinner','Суп-пюре з броколі з куркою','Броколі, вершки, куряче філе',28,350,[['броколі',300,'г'],['куряче філе',150,'г'],['вершки',50,'мл'],['картопля',150,'г']]),
+D('s1','snack','Кефір з чіа','Склянка кефіру, ложка чіа',12,180,[['кефір',250,'мл'],['насіння чіа',15,'г']]),
+D('s2','snack','Горіхи і яблуко','Жменя горіхів, яблуко',8,220,[['волоські горіхи',30,'г'],['яблуко',1,'шт']]),
+D('s3','snack','Сир з огірком','Сир, огірок, зелень',20,160,[['сир кисломолочний',150,'г'],['огірки',1,'шт'],['зелень',10,'г']]),
+D('s4','snack','Грецький йогурт','Без добавок або з ягодами',16,150,[['грецький йогурт',200,'г']]),
+D('s5','snack','Яйце і морква','Варене яйце, морквяні палички',8,130,[['яйця',1,'шт'],['морква',1,'шт']]),
+D('s6','snack','Хумус з овочами','Хумус, селера, перець, морква',9,200,[['хумус',100,'г'],['селера',50,'г'],['перець солодкий',1,'шт'],['морква',1,'шт']]),
+D('s7','snack','Батончик з фініків і горіхів','Домашній, без цукру',7,210,[['фініки',60,'г'],['волоські горіхи',30,'г']]),
+D('s8','snack','Тост з арахісовою пастою','Цільнозерновий хліб, паста',12,250,[['житній хліб',1,'скиб'],['арахісова паста',20,'г']]),
+D('s9','snack','Ряжанка з ягодами','Ряжанка, жменя ягід',10,170,[['ряжанка',250,'мл'],['ягоди',80,'г']]),
+D('s10','snack','Сирна паста на хлібці','Сир, зелень, часник',18,200,[['сир кисломолочний',120,'г'],['хлібці',3,'шт'],['зелень',10,'г'],['часник',1,'зуб']]),
+D('s11','snack','Едамаме','Соєві боби, морська сіль',14,190,[['едамаме',150,'г']]),
+D('s12','snack','Смузі з йогуртом і бананом','Йогурт, банан, молоко',14,220,[['грецький йогурт',200,'г'],['банан',1,'шт'],['молоко',100,'мл']])
+];
+
+const DEF_P={breakfast:24,lunch:35,dinner:31,snack:12};
+const DEF_K={breakfast:380,lunch:500,dinner:390,snack:190};
+const TARGET=105, FIB_TARGET=28;
+const TIPS=[
+ 'Клітковина годує бактерії кишківника. Найпростіше добрати її овочами до кожного прийому їжі.',
+ 'Різні кольори овочів — різні антиоксиданти. Тому в тарілці добре мати хоча б два кольори.',
+ 'Білок краще розподіляти рівномірно протягом дня, а не з’їдати все за вечерею.',
+ 'Ягоди — це і клітковина, і мало цукру. Заморожені взимку не гірші за свіжі.',
+ 'Бобові (нут, сочевиця, квасоля) дають і білок, і клітковину одночасно.',
+ 'Цільні крупи ситніші за шліфовані: гречка й булгур тримають довше, ніж білий рис.',
+ 'Горіхи — жменя на день. Це вже і жири, і клітковина, і трохи білка.',
+ 'Зелень майже нічого не важить у калоріях, але добре додає клітковини й вітамінів.'
+];
+
+let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[];
+const all=()=>BASE.concat(mine);
+const byType=t=>{const l=all().filter(m=>m.type===t&&!hidden.includes(m.id));return l.length?l:all().filter(m=>m.type===t)};
+const find=id=>all().find(m=>m.id===id);
+const $=s=>document.querySelector(s);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const key=d=>d.toISOString().slice(0,10);
+const todayKey=()=>key(new Date());
+function addDays(k,n){const d=new Date(k+'T12:00:00');d.setDate(d.getDate()+n);return key(d)}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1900)}
+const WD=['нд','пн','вт','ср','чт','пт','сб'];
+const WDF=['неділя','понеділок','вівторок','середа','четвер','пʼятниця','субота'];
+const MO=['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
+
+/* дні */
+function pickBalanced(){
+  let best=null,bs=1e9;
+  for(let i=0;i<300;i++){
+    const c={};let p=0;
+    for(const t of TYPES){const pool=byType(t.key);const m=pool[Math.random()*pool.length|0];c[t.key]=m.id;p+=m.prot}
+    const s=Math.abs(p-TARGET); if(s<bs){bs=s;best=c} if(s<6)break;
+  }
+  return best;
+}
+function makeDay(prev){
+  const f=pickBalanced(),slots={};
+  for(const t of TYPES){const o=prev&&prev.slots[t.key];slots[t.key]=(o&&o.locked)?o:{id:f[t.key],locked:false}}
+  return {slots,bought:(prev&&prev.bought)||[]};
+}
+function ensure(k){ if(!days[k]) days[k]=makeDay(null); return days[k] }
+const cur=()=>ensure(sel);
+function nextVariant(type){
+  const q=queues[sel]=queues[sel]||{};
+  if(!q[type]||!q[type].length) q[type]=shuffle(byType(type).map(m=>m.id));
+  const c=cur().slots[type].id;
+  let id=q[type].shift();
+  if(id===c&&q[type].length) id=q[type].shift();
+  cur().slots[type].id=id; save();
+}
+async function save(){
+  const keep={},min=addDays(todayKey(),-7);
+  Object.keys(days).forEach(k=>{if(k>=min)keep[k]=days[k]});
+  days=keep;
+  await store.set('menu:days',JSON.stringify(days));
+  await store.set('menu:mine',JSON.stringify(mine));
+  await store.set('menu:photos',JSON.stringify(photos));
+  await store.set('menu:hidden',JSON.stringify(hidden));
+  await store.set('menu:pantry',JSON.stringify(pantry));
+}
+async function load(){
+  try{mine=JSON.parse(await store.get('menu:mine'))||[]}catch(e){mine=[]}
+  try{photos=JSON.parse(await store.get('menu:photos'))||{}}catch(e){photos={}}
+  try{days=JSON.parse(await store.get('menu:days'))||{}}catch(e){days={}}
+  try{hidden=JSON.parse(await store.get('menu:hidden'))||[]}catch(e){hidden=[]}
+  try{pantry=JSON.parse(await store.get('menu:pantry'))||[]}catch(e){pantry=[]}
+  sel=todayKey(); ensure(sel); render();
+}
+
+/* поживність */
+function fiberOf(m){
+  if(!m.ing) return 0;
+  let f=0;
+  m.ing.forEach(([n,q,u])=>{
+    const e=ING[n]; if(!e||!q) return;
+    f+= (u==='г'||u==='мл') ? e[0]*q/100 : e[0]*q;
+  });
+  return Math.round(f);
+}
+function dayStats(k){
+  const d=ensure(k); let prot=0,kcal=0,fib=0,lp=0;
+  const v=new Set(),fr=new Set(),gr=new Set(),plants=new Set();
+  for(const t of TYPES){
+    const m=find(d.slots[t.key].id); if(!m) continue;
+    prot+=m.prot; kcal+=m.kcal; fib+=fiberOf(m);
+    if(d.slots[t.key].locked) lp+=m.prot;
+    (m.ing||[]).forEach(([n])=>{const e=ING[n];if(!e)return;
+      if(e[1]===V){v.add(n);plants.add(n)} if(e[1]===F){fr.add(n);plants.add(n)} if(e[1]===G){gr.add(n);plants.add(n)}});
+  }
+  return {prot,kcal,fib,lp,v,fr,gr,plants};
+}
+function weekPlants(){
+  const s=new Set();
+  for(let i=0;i<7;i++){const k=addDays(todayKey(),i); if(days[k]) dayStats(k).plants.forEach(n=>s.add(n))}
+  return s.size;
+}
+
+const ICON={
+ swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h13l-3.5-3.5M21 16H8l3.5 3.5"/></svg>',
+ cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h1.9l1.3-2h6.6l1.3 2h1.9A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.2"/></svg>',
+ check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+ ban:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.4"/><path d="M6.2 17.8 17.8 6.2"/></svg>',
+ pot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16v6.5a3.5 3.5 0 0 1-3.5 3.5h-9A3.5 3.5 0 0 1 4 15.5z"/><path d="M20 11h1.6M4 11H2.4M9 5.5c0 1-1 1-1 2M15 5.5c0 1-1 1-1 2"/></svg>'
+};
+
+function renderDays(){
+  const box=$('#days'); box.innerHTML='';
+  for(let i=0;i<7;i++){
+    const k=addDays(todayKey(),i), d=new Date(k+'T12:00:00');
+    const b=document.createElement('button');
+    b.className='dbtn'+(k===sel?' on':'')+(days[k]?' has':'');
+    b.innerHTML='<div class="wd">'+(i===0?'сьог':i===1?'завтра':WD[d.getDay()])+'</div><div class="dd">'+d.getDate()+'</div><div class="dot"></div>';
+    b.onclick=()=>{sel=k;ensure(k);save();render();};
+    box.appendChild(b);
+  }
+  const c=document.createElement('button');
+  c.className='dbtn copy'; c.title='Скопіювати день'; c.setAttribute('aria-label','Скопіювати день');
+  c.innerHTML='<div>⧉</div>';
+  c.onclick=()=>{renderCopy();open('#sheetCopy')};
+  box.appendChild(c);
+}
+
+function renderCopy(){
+  const box=$('#copyList'); box.innerHTML='';
+  const d=new Date(sel+'T12:00:00');
+  $('#copySub').textContent='у день '+d.getDate()+' '+MO[d.getMonth()];
+  const keys=Object.keys(days).filter(k=>k!==sel).sort();
+  if(!keys.length){box.innerHTML='<p class="empty">Поки немає інших днів, з яких копіювати. Відкрийте будь-який день у стрічці — і він тут зʼявиться.</p>';return}
+  keys.forEach(k=>{
+    const dd=new Date(k+'T12:00:00');
+    const names=TYPES.map(t=>{const m=find(days[k].slots[t.key].id);return m?m.name:''}).filter(Boolean).join(' · ');
+    const row=document.createElement('button'); row.className='copyrow';
+    row.innerHTML='<span class="cd">'+dd.getDate()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'</span><span class="cn">'+names+'</span>';
+    row.onclick=()=>{
+      const slots={};
+      for(const t of TYPES) slots[t.key]={id:days[k].slots[t.key].id,locked:false};
+      days[sel]={slots,bought:days[sel]?days[sel].bought||[]:[]};
+      queues[sel]=null; save(); closeAll(); render(); toast('Меню скопійовано');
+    };
+    box.appendChild(row);
+  });
+}
+
+function renderAch(){
+  const s=dayStats(sel);
+  const list=[
+    {on:s.prot>=100,ic:'●',t:'Білок 100+',s:s.prot+' г'},
+    {on:s.fib>=FIB_TARGET,ic:'❋',t:'Клітковина',s:s.fib+' / '+FIB_TARGET+' г'},
+    {on:s.v.size>=4,ic:'✿',t:'Овочі',s:s.v.size+' види'},
+    {on:s.fr.size>=1,ic:'✦',t:'Фрукти й ягоди',s:s.fr.size?'є':'немає'}
+  ];
+  $('#badges').innerHTML=list.map(b=>
+    '<div class="bdg'+(b.on?' on':'')+'"><span class="ic">'+b.ic+'</span><span class="tx"><b>'+b.t+'</b><span>'+b.s+'</span></span></div>').join('');
+  const p=weekPlants();
+  $('#plantN').textContent=p;
+  $('#plantBar').style.width=Math.min(p/30*100,100)+'%';
+  const di=new Date(sel+'T12:00:00').getDate();
+  $('#tip').textContent=TIPS[di%TIPS.length];
+}
+
+function render(){
+  const d=new Date(sel+'T12:00:00');
+  $('#dnum').textContent=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0');
+  $('#dword').textContent=(sel===todayKey()?'сьогодні · ':sel===addDays(todayKey(),1)?'завтра · ':'')+WDF[d.getDay()]+' · '+d.getDate()+' '+MO[d.getMonth()];
+  renderDays();
+  const st=dayStats(sel);
+  $('#pnum').textContent=st.prot;
+  $('#kcal').textContent='≈'+st.kcal+' ккал\n≈'+st.fib+' г клітковини';
+  $('#kcal').style.whiteSpace='pre-line';
+  $('#arc').style.strokeDashoffset=String(251-251*Math.min(st.prot/TARGET,1));
+  renderAch();
+
+  const box=$('#slots'); box.innerHTML='';
+  for(const t of TYPES){
+    const s=cur().slots[t.key], m=find(s.id)||byType(t.key)[0]; if(!m) continue;
+    const ph=photos[m.id], fb=fiberOf(m);
+    const sec=document.createElement('section'); sec.className='slot';
+    sec.innerHTML=
+      '<div class="slot-head"><span class="eyebrow">'+t.label+'</span><span class="rule"></span><span class="p-note">'+m.prot+' г білка</span></div>'+
+      '<div class="stack" data-type="'+t.key+'">'+(s.locked?'':'<div class="ghost"></div>')+
+      '<article class="card'+(s.locked?' locked':'')+'">'+
+        (ph?'<div class="frame"><img class="photo" src="'+ph+'" alt=""></div>':'')+
+        '<h3 class="dish">'+m.name+'</h3><p class="note">'+(m.note||'')+'</p>'+
+        '<div class="meta"><span class="tag prot">'+m.prot+' Г БІЛКА</span>'+
+          (fb>=3?'<span class="tag">'+fb+' Г КЛІТКОВИНИ</span>':'')+
+          '<span class="tag">≈'+m.kcal+' ККАЛ</span>'+(m.mine?'<span class="tag mine">МОЯ</span>':'')+'</div>'+
+        (s.locked
+          ?'<div class="locked-bar">'+ICON.check.replace('<svg','<svg style="width:16px;height:16px"')+'<span>Залишаю</span><button class="change" data-act="unlock">змінити</button></div>'
+          :'<div class="actions"><button class="btn" data-act="swap">'+ICON.swap+' Інша</button>'+
+           '<button class="btn ic" data-act="photo" aria-label="Фото">'+ICON.cam+'</button>'+
+           '<button class="btn ic" data-act="hide" aria-label="Не пропонувати">'+ICON.ban+'</button>'+
+           '<button class="btn keep" data-act="keep">'+ICON.check+' Залишити</button></div>')+
+        ((t.key==='lunch'||t.key==='dinner')?'<button class="extra" data-act="left">'+ICON.pot.replace('<svg','<svg style="width:15px;height:15px"')+' Лишки на завтра</button>':'')+
+      '</article></div>';
+    box.appendChild(sec);
+    if(!s.locked) attachSwipe(sec.querySelector('.stack'),t.key);
+  }
+  box.onclick=e=>{
+    const b=e.target.closest('[data-act]'); if(!b) return;
+    const type=b.closest('.stack').dataset.type, act=b.dataset.act;
+    if(act==='swap'){nextVariant(type);render()}
+    if(act==='keep'){cur().slots[type].locked=true;save();render();toast('Записала')}
+    if(act==='unlock'){cur().slots[type].locked=false;save();render()}
+    if(act==='photo'){photoTarget=cur().slots[type].id;$('#filePick').click()}
+    if(act==='hide'){
+      const id=cur().slots[type].id, m=find(id);
+      if(!hidden.includes(id)) hidden.push(id);
+      nextVariant(type); save(); render();
+      toast('«'+(m?m.name:'Страва')+'» більше не пропонуватиму');
+    }
+    if(act==='left'){
+      const id=cur().slots[type].id, m=find(id);
+      const tk=addDays(sel,1), target=type==='lunch'?'dinner':'lunch';
+      ensure(tk); days[tk].slots[target]={id,locked:true};
+      cur().slots[type].locked=true; save(); render();
+      toast('Завтра на '+(target==='dinner'?'вечерю':'обід')+' — '+(m?m.name.toLowerCase():'те саме'));
+    }
+  };
+}
+
+function attachSwipe(stack,type){
+  const card=stack.querySelector('.card');
+  let x0=0,y0=0,dx=0,dy=0,on=false,dec=false;
+  card.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;dx=dy=0;on=true;dec=false;card.classList.add('swiping')},{passive:true});
+  card.addEventListener('touchmove',e=>{
+    if(!on)return; const t=e.touches[0];dx=t.clientX-x0;dy=t.clientY-y0;
+    if(!dec){if(Math.abs(dx)<8&&Math.abs(dy)<8)return;dec=true;
+      if(Math.abs(dy)>Math.abs(dx)){on=false;card.classList.remove('swiping');card.style.transform='';return}}
+    e.preventDefault();
+    card.style.transform='translateX('+dx+'px) rotate('+(dx/34)+'deg)';
+    card.style.opacity=String(1-Math.min(Math.abs(dx)/420,.35));
+  },{passive:false});
+  const end=()=>{ if(!on)return; on=false; card.classList.remove('swiping');
+    if(Math.abs(dx)>68){const dir=dx>0?1:-1;
+      card.style.transform='translateX('+(dir*window.innerWidth)+'px) rotate('+(dir*14)+'deg)';card.style.opacity='0';
+      setTimeout(()=>{nextVariant(type);render()},190);
+    } else {card.style.transform='';card.style.opacity=''} };
+  card.addEventListener('touchend',end); card.addEventListener('touchcancel',end);
+}
+
+/* продукти */
+function collect(keys){
+  const items={};
+  keys.forEach(k=>{
+    const d=days[k]; if(!d) return;
+    for(const t of TYPES){
+      const m=find(d.slots[t.key].id); if(!m||!m.ing) continue;
+      m.ing.forEach(([n,q,u])=>{
+        const kk=n+'|'+(u||'');
+        if(!items[kk]) items[kk]={n,u:u||'',q:0};
+        items[kk].q+=q||0;
+      });
+    }
+  });
+  const g={};
+  Object.values(items).forEach(it=>{const c=catOf(it.n);(g[c]=g[c]||[]).push(it)});
+  return g;
+}
+function scopeKeys(){
+  if(scope==='day') return [sel];
+  const out=[]; for(let i=0;i<7;i++){const k=addDays(todayKey(),i); if(days[k]) out.push(k)} return out;
+}
+function renderScope(){
+  const box=$('#scopeChips'); box.innerHTML='';
+  [['day','Цей день'],['all','Усі заплановані']].forEach(([v,l])=>{
+    const b=document.createElement('button'); b.className='chip'+(scope===v?' on':''); b.textContent=l;
+    b.onclick=()=>{scope=v;renderProducts()}; box.appendChild(b);
+  });
+}
+function renderProducts(){
+  renderScope();
+  const keys=scopeKeys(), g=collect(keys), box=$('#prodList');
+  $('#prodSub').textContent=(scope==='day'?'на 1 день':'на '+keys.length+' днів')+' · 4 страви на день';
+  box.innerHTML='';
+  const bought=cur().bought=cur().bought||[];
+  const home=[];
+  const mkRow=(it,inPantry)=>{
+    const kk=it.n+'|'+it.u, done=bought.includes(kk);
+    const row=document.createElement('div'); row.className='prod'+(done?' done':'')+(inPantry?' pantry':'');
+    row.innerHTML='<span class="box">'+ICON.check+'</span><span class="n">'+it.n+'</span>'+
+      '<span class="q">'+(it.q?Math.round(it.q)+' '+it.u:'')+'</span><button class="home">є</button>';
+    row.querySelector('.home').onclick=e=>{
+      e.stopPropagation();
+      const i=pantry.indexOf(it.n); if(i<0)pantry.push(it.n); else pantry.splice(i,1);
+      save(); renderProducts();
+    };
+    row.onclick=()=>{const i=bought.indexOf(kk); if(i<0)bought.push(kk); else bought.splice(i,1); save(); renderProducts()};
+    return row;
+  };
+  ORDER.forEach(cat=>{
+    const list=(g[cat]||[]).filter(it=>{ if(pantry.includes(it.n)){home.push(it);return false} return true });
+    if(!list.length) return;
+    const wrap=document.createElement('div'); wrap.className='grp';
+    wrap.innerHTML='<h3>'+cat+'</h3>';
+    list.sort((a,b)=>a.n.localeCompare(b.n,'uk')).forEach(it=>wrap.appendChild(mkRow(it,false)));
+    box.appendChild(wrap);
+  });
+  if(home.length){
+    const wrap=document.createElement('div'); wrap.className='grp';
+    wrap.innerHTML='<h3>вже є вдома</h3>';
+    home.sort((a,b)=>a.n.localeCompare(b.n,'uk')).forEach(it=>wrap.appendChild(mkRow(it,true)));
+    box.appendChild(wrap);
+  }
+}
+$('#copyProd').onclick=()=>{
+  const g=collect(scopeKeys()),lines=[];
+  ORDER.forEach(c=>{
+    const l=(g[c]||[]).filter(it=>!pantry.includes(it.n)); if(!l.length)return;
+    lines.push(c.toUpperCase());
+    l.sort((a,b)=>a.n.localeCompare(b.n,'uk')).forEach(it=>lines.push('— '+it.n+(it.q?' '+Math.round(it.q)+' '+it.u:'')));
+    lines.push('')});
+  const txt=lines.join('\n').trim();
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>toast('Скопійовано')).catch(()=>toast('Не вдалося скопіювати'));
+  else toast('Не вдалося скопіювати');
+};
+
+/* фото */
+$('#filePick').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f)return;
+  compress(f).then(url=>{
+    if(photoTarget){photos[photoTarget]=url;photoTarget=null;save();render();toast('Фото додано')}
+    else{draftPhoto=url;const th=$('#fThumb');th.src=url;th.classList.add('on')}
+  }).catch(()=>toast('Не вдалося прочитати фото'));
+});
+function compress(file){
+  return new Promise((res,rej)=>{
+    const fr=new FileReader(); fr.onerror=rej;
+    fr.onload=()=>{const img=new Image(); img.onerror=rej;
+      img.onload=()=>{const max=720,k=Math.min(1,max/Math.max(img.width,img.height));
+        const c=document.createElement('canvas'); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height); res(c.toDataURL('image/jpeg',.72))};
+      img.src=fr.result};
+    fr.readAsDataURL(file)});
+}
+
+/* шторки */
+const scrim=$('#scrim');
+function open(sl){$(sl).classList.add('on');scrim.classList.add('on')}
+function closeAll(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));scrim.classList.remove('on')}
+scrim.onclick=closeAll;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+$('#newDay').onclick=()=>{days[sel]=makeDay(days[sel]);queues[sel]=null;save();render();toast('Нове меню')};
+$('#openProd').onclick=()=>{renderProducts();open('#sheetProd')};
+$('#openMine').onclick=()=>{renderMine();open('#sheetMine')};
+$('#addNew').onclick=()=>{closeAll();resetForm();setTimeout(()=>open('#sheetAdd'),260)};
+
+let formType='breakfast';
+function buildChips(){
+  const box=$('#fType'); box.innerHTML='';
+  TYPES.forEach(t=>{const b=document.createElement('button');b.className='chip'+(t.key===formType?' on':'');
+    b.textContent=t.label;b.onclick=()=>{formType=t.key;buildChips()};box.appendChild(b)});
+}
+function resetForm(){formType='breakfast';draftPhoto=null;$('#fName').value='';$('#fProt').value='';$('#fIng').value='';
+  $('#fThumb').classList.remove('on');$('#fThumb').removeAttribute('src');buildChips()}
+$('#fPhotoBtn').onclick=()=>{photoTarget=null;$('#filePick').click()};
+$('#fSave').onclick=async()=>{
+  const name=$('#fName').value.trim();
+  if(!name){toast('Впишіть назву страви');$('#fName').focus();return}
+  const p=parseInt($('#fProt').value,10);
+  const ing=$('#fIng').value.split(',').map(s=>s.trim()).filter(Boolean).map(n=>[n,0,'']);
+  const id='u'+Date.now();
+  mine.push({id,type:formType,name,note:'',mine:true,ing,prot:(Number.isFinite(p)&&p>0)?p:DEF_P[formType],kcal:DEF_K[formType]});
+  if(draftPhoto) photos[id]=draftPhoto;
+  queues[sel]=null; await save(); closeAll(); render(); toast('Страва у списку');
+};
+function renderHidden(){
+  const box=$('#mineList');
+  if(!hidden.length) return;
+  const t=document.createElement('div'); t.className='sec-t'; t.textContent='не пропонувати ('+hidden.length+')';
+  box.appendChild(t);
+  hidden.slice().forEach(id=>{
+    const m=find(id); if(!m) return;
+    const row=document.createElement('div'); row.className='mine-row';
+    const label=TYPES.find(x=>x.key===m.type).label;
+    row.innerHTML=(photos[m.id]?'<img src="'+photos[m.id]+'" alt="">':'<div class="ph"></div>')+
+      '<div class="nm" style="color:var(--faint)">'+m.name+'<small>'+label+'</small></div><button class="del" aria-label="Повернути">↺</button>';
+    row.querySelector('.del').onclick=async()=>{hidden=hidden.filter(x=>x!==id);await save();renderMine();render();toast('Повернула у варіанти')};
+    box.appendChild(row);
+  });
+}
+function renderMine(){
+  const box=$('#mineList');
+  box.innerHTML='';
+  if(!mine.length){box.innerHTML='<p class="empty">Поки порожньо. Додайте свої страви — вони зʼявлятимуться серед варіантів для свого прийому їжі.</p>';renderHidden();return}
+  mine.slice().reverse().forEach(m=>{
+    const row=document.createElement('div'); row.className='mine-row';
+    const label=TYPES.find(t=>t.key===m.type).label;
+    row.innerHTML=(photos[m.id]?'<img src="'+photos[m.id]+'" alt="">':'<div class="ph"></div>')+
+      '<div class="nm">'+m.name+'<small>'+label+' · '+m.prot+' г білка</small></div><button class="del" aria-label="Видалити">×</button>';
+    row.querySelector('.del').onclick=async()=>{
+      mine=mine.filter(x=>x.id!==m.id); delete photos[m.id];
+      Object.keys(days).forEach(k=>{for(const t of TYPES){if(days[k].slots[t.key].id===m.id){const pool=byType(t.key);days[k].slots[t.key].id=pool[Math.random()*pool.length|0].id}}});
+      await save(); renderMine(); render();
+    };
+    box.appendChild(row);
+  });
+  renderHidden();
+}
+buildChips(); load();
+
+/* офлайн-режим */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})});
+}
+</script>
+</body>
+</html>
