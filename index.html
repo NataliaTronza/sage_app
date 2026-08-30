@@ -123,6 +123,29 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .copyrow .cd{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;flex:none;width:46px}
 .copyrow .cn{flex:1;min-width:0;font-size:12.5px;color:var(--soft);line-height:1.45}
 .sec-t{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:26px 0 12px 4px}
+.ach-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ach-head h4{margin:0}
+.more{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:6px 10px;border-radius:12px;box-shadow:var(--up-s)}
+.dial{cursor:pointer}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.stat{padding:15px 16px;border-radius:20px;box-shadow:var(--up-s)}
+.stat .v{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:24px;line-height:1}
+.stat .v small{font-size:12px;font-weight:400;color:var(--faint)}
+.stat .k{font-size:11.5px;color:var(--soft);margin-top:7px;line-height:1.35}
+.bars{display:flex;align-items:flex-end;gap:5px;height:110px;margin-top:14px;padding:14px 12px 10px;border-radius:20px;box-shadow:var(--in-s)}
+.bars .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:6px}
+.bars .col i{display:block;width:100%;border-radius:5px;background:var(--sage-d);min-height:3px}
+.bars .col.none i{background:#D5D7D0}
+.bars .col.hit i{background:var(--sage-d);box-shadow:0 0 0 2px var(--sage) inset}
+.bars .col span{font-family:'JetBrains Mono',monospace;font-size:8.5px;color:var(--faint)}
+.abadge{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:19px;box-shadow:var(--up-s);margin-bottom:9px;opacity:.55}
+.abadge.on{background:var(--sage);box-shadow:none;opacity:1}
+.abadge .ai{font-size:17px;flex:none;width:22px;text-align:center}
+.abadge .at{flex:1;min-width:0;font-size:14px}
+.abadge .at small{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--faint);margin-top:4px}
+.abadge.on .at small{color:#5C6650}
+.topd{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid rgba(27,36,30,.08);font-size:14px}
+.topd .c{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint);margin-left:auto}
 .btn.keep{background:var(--sage);box-shadow:4px 4px 9px var(--sh),-4px -4px 9px var(--hi);color:#33392B}
 .btn.keep:active{box-shadow:inset 3px 3px 7px #A2AD8D,inset -3px -3px 7px #E1E9CE}
 .locked-bar{display:flex;align-items:center;gap:9px;margin-top:16px;padding:12px 16px;border-radius:17px;box-shadow:var(--in-s);font-size:13.5px;color:#495041}
@@ -203,7 +226,7 @@ input::placeholder{color:#AEB2A9}
   <div class="days" id="days"></div>
 
   <div class="ach">
-    <h4>Ачівки дня</h4>
+    <div class="ach-head"><h4>Ачівки дня</h4><button class="more" id="openStats">статистика →</button></div>
     <div class="badges" id="badges"></div>
     <div class="plants">
       <div class="big"><span id="plantN">0</span><small>/30</small></div>
@@ -234,6 +257,21 @@ input::placeholder{color:#AEB2A9}
     <div class="chips" id="scopeChips"></div>
     <div id="prodList"></div>
     <button class="btn wide" id="copyProd">Скопіювати список</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheetStats" role="dialog" aria-label="Статистика">
+  <div class="sheet-inner">
+    <div class="grab"></div>
+    <h2>Статистика</h2>
+    <div class="sub" id="statSub"></div>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="sec-t">білок за останні 14 днів</div>
+    <div class="bars" id="statBars"></div>
+    <div class="sec-t" id="topTitle">найчастіші страви</div>
+    <div id="topList"></div>
+    <div class="sec-t">досягнення</div>
+    <div id="achList"></div>
   </div>
 </div>
 
@@ -385,7 +423,7 @@ const TIPS=[
  'Зелень майже нічого не важить у калоріях, але добре додає клітковини й вітамінів.'
 ];
 
-let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[];
+let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[],records={prot:0,fib:0};
 const all=()=>BASE.concat(mine);
 const byType=t=>{const l=all().filter(m=>m.type===t&&!hidden.includes(m.id));return l.length?l:all().filter(m=>m.type===t)};
 const find=id=>all().find(m=>m.id===id);
@@ -425,7 +463,7 @@ function nextVariant(type){
   cur().slots[type].id=id; save();
 }
 async function save(){
-  const keep={},min=addDays(todayKey(),-7);
+  const keep={},min=addDays(todayKey(),-90);
   Object.keys(days).forEach(k=>{if(k>=min)keep[k]=days[k]});
   days=keep;
   await store.set('menu:days',JSON.stringify(days));
@@ -433,6 +471,7 @@ async function save(){
   await store.set('menu:photos',JSON.stringify(photos));
   await store.set('menu:hidden',JSON.stringify(hidden));
   await store.set('menu:pantry',JSON.stringify(pantry));
+  await store.set('menu:records',JSON.stringify(records));
 }
 async function load(){
   try{mine=JSON.parse(await store.get('menu:mine'))||[]}catch(e){mine=[]}
@@ -440,6 +479,7 @@ async function load(){
   try{days=JSON.parse(await store.get('menu:days'))||{}}catch(e){days={}}
   try{hidden=JSON.parse(await store.get('menu:hidden'))||[]}catch(e){hidden=[]}
   try{pantry=JSON.parse(await store.get('menu:pantry'))||[]}catch(e){pantry=[]}
+  try{records=JSON.parse(await store.get('menu:records'))||{prot:0,fib:0}}catch(e){records={prot:0,fib:0}}
   sel=todayKey(); ensure(sel); render();
 }
 
@@ -469,6 +509,34 @@ function weekPlants(){
   const s=new Set();
   for(let i=0;i<7;i++){const k=addDays(todayKey(),i); if(days[k]) dayStats(k).plants.forEach(n=>s.add(n))}
   return s.size;
+}
+
+function dayDone(k){const d=days[k]; return !!d && TYPES.every(t=>d.slots[t.key].locked)}
+function closedDays(){return Object.keys(days).filter(k=>k<=todayKey()&&dayDone(k)).sort()}
+function streakOf(test){
+  const t0=todayKey();
+  let start=(days[t0]&&dayDone(t0)&&test(dayStats(t0)))?0:1, n=0;
+  for(let i=start;i<200;i++){
+    const k=addDays(t0,-i);
+    if(!days[k]||!dayDone(k)||!test(dayStats(k))) break;
+    n++;
+  }
+  return n;
+}
+const protStreak=()=>streakOf(s=>s.prot>=100);
+const fibStreak=()=>streakOf(s=>s.fib>=FIB_TARGET);
+function plantsIn(n){
+  const set=new Set();
+  for(let i=0;i<n;i++){const k=addDays(todayKey(),-i); if(days[k]) dayStats(k).plants.forEach(x=>set.add(x))}
+  return set.size;
+}
+function avgOf(field,n){
+  const ks=closedDays().slice(-n); if(!ks.length) return 0;
+  return Math.round(ks.reduce((a,k)=>a+dayStats(k)[field],0)/ks.length);
+}
+function updateRecords(){
+  const p=protStreak(), f=fibStreak();
+  if(p>records.prot||f>records.fib){records.prot=Math.max(records.prot,p);records.fib=Math.max(records.fib,f);save()}
 }
 
 const ICON={
@@ -527,6 +595,13 @@ function renderAch(){
   ];
   $('#badges').innerHTML=list.map(b=>
     '<div class="bdg'+(b.on?' on':'')+'"><span class="ic">'+b.ic+'</span><span class="tx"><b>'+b.t+'</b><span>'+b.s+'</span></span></div>').join('');
+  const ps=protStreak(), fs=fibStreak();
+  if(ps>=2||fs>=2){
+    const line=document.createElement('div'); line.className='bdg on'; line.style.gridColumn='1 / -1';
+    line.innerHTML='<span class="ic">◈</span><span class="tx"><b>Серія: '+Math.max(ps,fs)+' дн. поспіль</b><span>'+
+      (ps>=2?'білок '+ps+' дн':'')+(ps>=2&&fs>=2?' · ':'')+(fs>=2?'клітковина '+fs+' дн':'')+'</span></span>';
+    $('#badges').appendChild(line);
+  }
   const p=weekPlants();
   $('#plantN').textContent=p;
   $('#plantBar').style.width=Math.min(p/30*100,100)+'%';
@@ -575,7 +650,7 @@ function render(){
     const b=e.target.closest('[data-act]'); if(!b) return;
     const type=b.closest('.stack').dataset.type, act=b.dataset.act;
     if(act==='swap'){nextVariant(type);render()}
-    if(act==='keep'){cur().slots[type].locked=true;save();render();toast('Записала')}
+    if(act==='keep'){cur().slots[type].locked=true;save();render();updateRecords();toast('Записала')}
     if(act==='unlock'){cur().slots[type].locked=false;save();render()}
     if(act==='photo'){photoTarget=cur().slots[type].id;$('#filePick').click()}
     if(act==='hide'){
@@ -717,6 +792,55 @@ scrim.onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('#newDay').onclick=()=>{days[sel]=makeDay(days[sel]);queues[sel]=null;save();render();toast('Нове меню')};
 $('#openProd').onclick=()=>{renderProducts();open('#sheetProd')};
+$('#openStats').onclick=()=>{renderStats();open('#sheetStats')};
+document.querySelector('.dial').onclick=()=>{renderStats();open('#sheetStats')};
+
+function renderStats(){
+  const closed=closedDays(), ps=protStreak(), fs=fibStreak();
+  $('#statSub').textContent=closed.length?('закритих днів: '+closed.length):'поки жодного закритого дня';
+  const cells=[
+    ['<span class="v">'+ps+' <small>дн</small></span>','білок 100+ поспіль'+(records.prot>ps?' · рекорд '+records.prot:'')],
+    ['<span class="v">'+fs+' <small>дн</small></span>','клітковина '+FIB_TARGET+'+ поспіль'+(records.fib>fs?' · рекорд '+records.fib:'')],
+    ['<span class="v">'+avgOf('prot',7)+' <small>г</small></span>','середній білок за 7 закритих днів'],
+    ['<span class="v">'+avgOf('fib',7)+' <small>г</small></span>','середня клітковина за 7 днів'],
+    ['<span class="v">'+plantsIn(30)+'</span>','різних рослин за 30 днів'],
+    ['<span class="v">'+closed.length+'</span>','закритих днів усього']
+  ];
+  $('#statGrid').innerHTML=cells.map(c=>'<div class="stat">'+c[0]+'<div class="k">'+c[1]+'</div></div>').join('');
+
+  // графік білка за 14 днів
+  let bars='';
+  for(let i=13;i>=0;i--){
+    const k=addDays(todayKey(),-i), d=new Date(k+'T12:00:00');
+    const has=!!days[k], v=has?dayStats(k).prot:0;
+    const h=Math.max(3,Math.min(v/140,1)*100);
+    bars+='<div class="col'+(has?(v>=100?' hit':''):' none')+'"><i style="height:'+(has?h:6)+'%"></i><span>'+d.getDate()+'</span></div>';
+  }
+  $('#statBars').innerHTML=bars;
+
+  // найчастіші страви
+  const cnt={};
+  closed.forEach(k=>TYPES.forEach(t=>{const id=days[k].slots[t.key].id;cnt[id]=(cnt[id]||0)+1}));
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  $('#topList').innerHTML=top.length
+    ? top.map(([id,c])=>{const m=find(id);return m?'<div class="topd">'+m.name+'<span class="c">'+c+'×</span></div>':''}).join('')
+    : '<p class="empty">Тут зʼявляться страви, які повторюються найчастіше.</p>';
+
+  // досягнення
+  const total=closed.length, dishes=new Set(); closed.forEach(k=>TYPES.forEach(t=>dishes.add(days[k].slots[t.key].id)));
+  const list=[
+    ['✧','Перший день','закрити всі 4 страви за день',total>=1],
+    ['◈','Тиждень з білком','7 днів поспіль зі 100+ г білка',Math.max(ps,records.prot)>=7],
+    ['◈','Десятка','10 днів поспіль зі 100+ г білка',Math.max(ps,records.prot)>=10],
+    ['❋','Клітковина 5 днів','5 днів поспіль по '+FIB_TARGET+'+ г',Math.max(fs,records.fib)>=5],
+    ['✿','30 рослин','30 різних рослин за 7 днів',weekPlants()>=30],
+    ['◇','Різноманіття','30 різних страв за весь час',dishes.size>=30],
+    ['✎','Своя кухня','5 власних страв у списку',mine.length>=5],
+    ['▣','Фотоальбом','10 страв із фото',Object.keys(photos).length>=10],
+    ['▲','Місяць','20 закритих днів',total>=20]
+  ];
+  $('#achList').innerHTML=list.map(a=>'<div class="abadge'+(a[3]?' on':'')+'"><span class="ai">'+a[0]+'</span><span class="at">'+a[1]+'<small>'+a[2]+'</small></span></div>').join('');
+}
 $('#openMine').onclick=()=>{renderMine();open('#sheetMine')};
 $('#addNew').onclick=()=>{closeAll();resetForm();setTimeout(()=>open('#sheetAdd'),260)};
 
