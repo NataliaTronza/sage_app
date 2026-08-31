@@ -130,6 +130,9 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .install .it small{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--faint);margin-top:3px}
 .install .go{padding:10px 14px;border-radius:14px;background:var(--black);color:#EFF0EB;font-size:12.5px;flex:none}
 .install .x{color:var(--faint);font-size:17px;padding:4px 6px;flex:none}
+.stick{position:sticky;top:0;z-index:2;background:var(--bg);padding-bottom:16px;
+ box-shadow:0 12px 14px -10px rgba(194,196,190,.9)}
+.stick h2{margin:6px 0 4px}
 .steps{counter-reset:st;margin:0;padding:0;list-style:none}
 .steps li{position:relative;padding:13px 16px 13px 46px;border-radius:18px;box-shadow:var(--up-s);margin-bottom:9px;font-size:14px;line-height:1.45}
 .steps li:before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:13px;width:20px;height:20px;border-radius:7px;
@@ -314,10 +317,12 @@ input::placeholder{color:#AEB2A9}
 <div class="sheet" id="sheetMine" role="dialog" aria-label="Мої страви">
   <div class="sheet-inner">
     <div class="grab"></div>
-    <h2>Мої страви</h2>
-    <div class="sub">зʼявляються серед варіантів</div>
+    <div class="stick">
+      <h2>Мої страви</h2>
+      <div class="sub">зʼявляються серед варіантів</div>
+      <button class="btn wide sage" id="addNew" style="margin-top:0">+ Додати страву</button>
+    </div>
     <div id="mineList"></div>
-    <button class="btn wide sage" id="addNew">Додати страву</button>
   </div>
 </div>
 
@@ -334,6 +339,8 @@ input::placeholder{color:#AEB2A9}
     <input type="text" id="fIng" placeholder="сир, яйця, борошно" autocomplete="off">
     <label class="f" for="fProt">Білок, г</label>
     <input type="number" id="fProt" inputmode="numeric" placeholder="необовʼязково" min="0" max="200">
+    <label class="f" for="fFib">Клітковина, г</label>
+    <input type="number" id="fFib" inputmode="numeric" placeholder="необовʼязково" min="0" max="100">
     <label class="f">Фото</label>
     <button class="btn wide" id="fPhotoBtn" style="margin-top:0">Обрати фото</button>
     <img class="thumb" id="fThumb" alt="">
@@ -438,6 +445,7 @@ D('s12','snack','Смузі з йогуртом і бананом','Йогурт
 
 const DEF_P={breakfast:24,lunch:35,dinner:31,snack:12};
 const DEF_K={breakfast:380,lunch:500,dinner:390,snack:190};
+const DEF_F={breakfast:5,lunch:8,dinner:7,snack:4};
 const TARGET=105, FIB_TARGET=28;
 const TIPS=[
  'Клітковина годує бактерії кишківника. Найпростіше добрати її овочами до кожного прийому їжі.',
@@ -513,6 +521,7 @@ async function load(){
 
 /* поживність */
 function fiberOf(m){
+  if(typeof m.fib==='number') return m.fib;
   if(!m.ing) return 0;
   let f=0;
   m.ing.forEach(([n,q,u])=>{
@@ -889,7 +898,7 @@ function buildChips(){
     box.appendChild(b);
   });
 }
-function resetForm(){formTypes=['breakfast'];draftPhoto=null;$('#fName').value='';$('#fProt').value='';$('#fIng').value='';
+function resetForm(){formTypes=['breakfast'];draftPhoto=null;$('#fName').value='';$('#fProt').value='';$('#fFib').value='';$('#fIng').value='';
   $('#fThumb').classList.remove('on');$('#fThumb').removeAttribute('src');buildChips()}
 $('#fPhotoBtn').onclick=()=>{photoTarget=null;$('#filePick').click()};
 $('#fSave').onclick=async()=>{
@@ -899,8 +908,11 @@ $('#fSave').onclick=async()=>{
   const ing=$('#fIng').value.split(',').map(s=>s.trim()).filter(Boolean).map(n=>[n,0,'']);
   const id='u'+Date.now();
   const t0=formTypes[0];
+  const fb=parseInt($('#fFib').value,10);
   mine.push({id,type:t0,types:formTypes.slice(),name,note:'',mine:true,ing,
-    prot:(Number.isFinite(p)&&p>0)?p:DEF_P[t0],kcal:DEF_K[t0]});
+    prot:(Number.isFinite(p)&&p>0)?p:DEF_P[t0],
+    fib:(Number.isFinite(fb)&&fb>=0)?fb:DEF_F[t0],
+    kcal:DEF_K[t0]});
   if(draftPhoto) photos[id]=draftPhoto;
   queues={}; await save(); closeAll(); render(); toast('Страва у списку');
 };
@@ -922,12 +934,13 @@ function renderHidden(){
 function renderMine(){
   const box=$('#mineList');
   box.innerHTML='';
+  box.style.paddingTop='18px';
   if(!mine.length){box.innerHTML='<p class="empty">Поки порожньо. Додайте свої страви — вони зʼявлятимуться серед варіантів для свого прийому їжі.</p>';renderHidden();return}
   mine.slice().reverse().forEach(m=>{
     const row=document.createElement('div'); row.className='mine-row';
     const label=dishTypes(m).map(k=>TYPES.find(t=>t.key===k).label).join(' · ');
     row.innerHTML=(photos[m.id]?'<img src="'+photos[m.id]+'" alt="">':'<div class="ph"></div>')+
-      '<div class="nm">'+m.name+'<small>'+label+' · '+m.prot+' г білка</small></div><button class="del" aria-label="Видалити">×</button>';
+      '<div class="nm">'+m.name+'<small>'+label+' · '+m.prot+' г білка · '+fiberOf(m)+' г клітк.</small></div><button class="del" aria-label="Видалити">×</button>';
     row.querySelector('.del').onclick=async()=>{
       mine=mine.filter(x=>x.id!==m.id); delete photos[m.id];
       Object.keys(days).forEach(k=>{for(const t of TYPES){if(days[k].slots[t.key].id===m.id){const pool=byType(t.key);days[k].slots[t.key].id=pool[Math.random()*pool.length|0].id}}});
