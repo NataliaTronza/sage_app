@@ -130,6 +130,12 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .install .it small{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--faint);margin-top:3px}
 .install .go{padding:10px 14px;border-radius:14px;background:var(--black);color:#EFF0EB;font-size:12.5px;flex:none}
 .install .x{color:var(--faint);font-size:17px;padding:4px 6px;flex:none}
+.sheet-inner{position:relative}
+.sclose{position:absolute;top:14px;right:0;width:38px;height:38px;border-radius:13px;box-shadow:var(--up-s);
+ display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);z-index:3;background:var(--bg)}
+.sclose:active{box-shadow:var(--in-s)}
+.dishbtn{display:flex;align-items:center;gap:9px;text-align:left;width:100%}
+.dishbtn .pen{font-size:13px;color:var(--faint);flex:none}
 .dg{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:16px;box-shadow:var(--up-s);margin-bottom:8px;font-size:13px}
 .dg .st{width:20px;height:20px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;
  font-family:'JetBrains Mono',monospace;font-size:11px;background:#D5D7D0;color:var(--soft)}
@@ -279,7 +285,7 @@ input::placeholder{color:#AEB2A9}
 
 <div class="sheet" id="sheetProd" role="dialog" aria-label="Список продуктів">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
     <h2>Список продуктів</h2>
     <div class="sub" id="prodSub"></div>
     <div class="chips" id="scopeChips"></div>
@@ -290,7 +296,7 @@ input::placeholder{color:#AEB2A9}
 
 <div class="sheet" id="sheetHow" role="dialog" aria-label="Як встановити">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
     <h2>Встановити Sage</h2>
     <div class="sub" id="howSub"></div>
     <ol class="steps" id="howSteps"></ol>
@@ -301,7 +307,7 @@ input::placeholder{color:#AEB2A9}
 
 <div class="sheet" id="sheetStats" role="dialog" aria-label="Статистика">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
     <h2>Статистика</h2>
     <div class="sub" id="statSub"></div>
     <div class="stat-grid" id="statGrid"></div>
@@ -316,7 +322,7 @@ input::placeholder{color:#AEB2A9}
 
 <div class="sheet" id="sheetCopy" role="dialog" aria-label="Копіювати день">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
     <h2>Скопіювати день</h2>
     <div class="sub" id="copySub"></div>
     <div id="copyList"></div>
@@ -325,7 +331,7 @@ input::placeholder{color:#AEB2A9}
 
 <div class="sheet" id="sheetMine" role="dialog" aria-label="Мої страви">
   <div class="sheet-inner">
-    <div class="grab"></div>
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
     <div class="stick">
       <h2>Мої страви</h2>
       <div class="sub">зʼявляються серед варіантів</div>
@@ -337,9 +343,9 @@ input::placeholder{color:#AEB2A9}
 
 <div class="sheet" id="sheetAdd" role="dialog" aria-label="Своя страва">
   <div class="sheet-inner">
-    <div class="grab"></div>
-    <h2>Своя страва</h2>
-    <div class="sub">назва, прийом їжі, фото</div>
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
+    <h2 id="addTitle">Своя страва</h2>
+    <div class="sub" id="addSub">назва, прийом їжі, фото</div>
     <label class="f" for="fName">Назва</label>
     <input type="text" id="fName" placeholder="Мамині сирники" autocomplete="off">
     <label class="f">Прийом їжі — можна кілька</label>
@@ -354,6 +360,8 @@ input::placeholder{color:#AEB2A9}
     <button class="btn wide" id="fPhotoBtn" style="margin-top:0">Обрати фото</button>
     <img class="thumb" id="fThumb" alt="">
     <button class="btn wide sage" id="fSave">Зберегти страву</button>
+    <button class="btn wide" id="fDelete" style="display:none">Видалити страву</button>
+    <button class="btn wide" id="fReset" style="display:none">Скинути мої правки</button>
   </div>
 </div>
 
@@ -467,9 +475,10 @@ const TIPS=[
  'Зелень майже нічого не важить у калоріях, але добре додає клітковини й вітамінів.'
 ];
 
-let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[],records={prot:0,fib:0};
-const all=()=>BASE.concat(mine);
+let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[],records={prot:0,fib:0},edits={},editId=null;
+const all=()=>BASE.concat(mine).map(applyEdit);
 const dishTypes=m=>m.types&&m.types.length?m.types:[m.type];
+const applyEdit=m=>edits[m.id]?Object.assign({},m,edits[m.id]):m;
 const byType=t=>{const l=all().filter(m=>dishTypes(m).includes(t)&&!hidden.includes(m.id));return l.length?l:all().filter(m=>dishTypes(m).includes(t))};
 const find=id=>all().find(m=>m.id===id);
 const $=s=>document.querySelector(s);
@@ -517,6 +526,7 @@ async function save(){
   await store.set('menu:hidden',JSON.stringify(hidden));
   await store.set('menu:pantry',JSON.stringify(pantry));
   await store.set('menu:records',JSON.stringify(records));
+  await store.set('menu:edits',JSON.stringify(edits));
 }
 async function load(){
   try{mine=JSON.parse(await store.get('menu:mine'))||[]}catch(e){mine=[]}
@@ -525,6 +535,7 @@ async function load(){
   try{hidden=JSON.parse(await store.get('menu:hidden'))||[]}catch(e){hidden=[]}
   try{pantry=JSON.parse(await store.get('menu:pantry'))||[]}catch(e){pantry=[]}
   try{records=JSON.parse(await store.get('menu:records'))||{prot:0,fib:0}}catch(e){records={prot:0,fib:0}}
+  try{edits=JSON.parse(await store.get('menu:edits'))||{}}catch(e){edits={}}
   sel=todayKey(); ensure(sel); render();
 }
 
@@ -677,7 +688,8 @@ function render(){
       '<div class="stack" data-type="'+t.key+'">'+(s.locked?'':'<div class="ghost"></div>')+
       '<article class="card'+(s.locked?' locked':'')+'">'+
         (ph?'<div class="frame"><img class="photo" src="'+ph+'" alt=""></div>':'')+
-        '<h3 class="dish">'+m.name+'</h3><p class="note">'+(m.note||'')+'</p>'+
+        '<button class="dishbtn" data-act="edit"><h3 class="dish">'+m.name+'</h3><span class="pen">✎</span></button>'+
+        '<p class="note">'+(m.note||'')+'</p>'+
         '<div class="meta"><span class="tag prot">'+m.prot+' Г БІЛКА</span>'+
           (fb>=3?'<span class="tag">'+fb+' Г КЛІТКОВИНИ</span>':'')+
           '<span class="tag">≈'+m.kcal+' ККАЛ</span>'+(m.mine?'<span class="tag mine">МОЯ</span>':'')+'</div>'+
@@ -699,6 +711,7 @@ function render(){
     if(act==='keep'){cur().slots[type].locked=true;save();render();updateRecords();toast('Записала')}
     if(act==='unlock'){cur().slots[type].locked=false;save();render()}
     if(act==='photo'){photoTarget=cur().slots[type].id;$('#filePick').click()}
+    if(act==='edit'){openEdit(cur().slots[type].id)}
     if(act==='hide'){
       const id=cur().slots[type].id, m=find(id);
       if(!hidden.includes(id)) hidden.push(id);
@@ -832,8 +845,17 @@ function compress(file){
 
 /* шторки */
 const scrim=$('#scrim');
-function open(sl){$(sl).classList.add('on');scrim.classList.add('on')}
-function closeAll(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));scrim.classList.remove('on')}
+let sheetOpen=false;
+function open(sl){
+  $(sl).classList.add('on'); scrim.classList.add('on');
+  if(!sheetOpen){ sheetOpen=true; try{history.pushState({sheet:1},'')}catch(e){} }
+}
+function shut(){document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('on'));scrim.classList.remove('on')}
+function closeAll(){
+  shut();
+  if(sheetOpen){ sheetOpen=false; if(history.state&&history.state.sheet){ try{history.back()}catch(e){} } }
+}
+window.addEventListener('popstate',()=>{ if(sheetOpen){ sheetOpen=false; shut(); } });
 scrim.onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('#newDay').onclick=()=>{days[sel]=makeDay(days[sel]);queues[sel]=null;save();render();toast('Нове меню')};
@@ -888,7 +910,7 @@ function renderStats(){
   $('#achList').innerHTML=list.map(a=>'<div class="abadge'+(a[3]?' on':'')+'"><span class="ai">'+a[0]+'</span><span class="at">'+a[1]+'<small>'+a[2]+'</small></span></div>').join('');
 }
 $('#openMine').onclick=()=>{renderMine();open('#sheetMine')};
-$('#addNew').onclick=()=>{closeAll();resetForm();setTimeout(()=>open('#sheetAdd'),260)};
+$('#addNew').onclick=()=>{shut();resetForm();setTimeout(()=>{$('#sheetAdd').classList.add('on');scrim.classList.add('on')},260)};
 
 let formTypes=['breakfast'];
 function buildChips(){
@@ -907,14 +929,66 @@ function buildChips(){
     box.appendChild(b);
   });
 }
-function resetForm(){formTypes=['breakfast'];draftPhoto=null;$('#fName').value='';$('#fProt').value='';$('#fFib').value='';$('#fIng').value='';
+function resetForm(){editId=null;
+  $('#addTitle').textContent='Своя страва';$('#addSub').textContent='назва, прийом їжі, фото';
+  $('#fSave').textContent='Зберегти страву';$('#fDelete').style.display='none';$('#fReset').style.display='none';
+  formTypes=['breakfast'];draftPhoto=null;$('#fName').value='';$('#fProt').value='';$('#fFib').value='';$('#fIng').value='';
   $('#fThumb').classList.remove('on');$('#fThumb').removeAttribute('src');buildChips()}
 $('#fPhotoBtn').onclick=()=>{photoTarget=null;$('#filePick').click()};
+
+function ingToText(ing){
+  return (ing||[]).map(([n,q,u])=>q?(n+' '+q+(u?' '+u:'')):n).join(', ');
+}
+function textToIng(txt){
+  return txt.split(',').map(x=>x.trim()).filter(Boolean).map(x=>{
+    const m=x.match(/^(.+?)\s+(\d+(?:[.,]\d+)?)\s*(г|мл|шт|ст\.л\.|скиб|зуб)?$/);
+    if(m) return [m[1].trim(), parseFloat(m[2].replace(',','.')), m[3]||''];
+    return [x,0,''];
+  });
+}
+function openEdit(id){
+  const m=find(id); if(!m) return;
+  editId=id; draftPhoto=null;
+  formTypes=dishTypes(m).slice(); buildChips();
+  $('#addTitle').textContent='Редагувати страву';
+  $('#addSub').textContent=m.mine?'ваша страва':'страва зі списку — правки лише у вас';
+  $('#fName').value=m.name;
+  $('#fIng').value=ingToText(m.ing);
+  $('#fProt').value=m.prot;
+  $('#fFib').value=fiberOf(m);
+  const th=$('#fThumb');
+  if(photos[id]){th.src=photos[id];th.classList.add('on')} else {th.classList.remove('on');th.removeAttribute('src')}
+  $('#fSave').textContent='Зберегти зміни';
+  $('#fDelete').style.display=m.mine?'':'none';
+  $('#fReset').style.display=(!m.mine&&edits[id])?'':'none';
+  shut(); setTimeout(()=>{$('#sheetAdd').classList.add('on');scrim.classList.add('on')},260);
+}
+$('#fDelete').onclick=async()=>{
+  const id=editId; if(!id) return;
+  mine=mine.filter(x=>x.id!==id); delete photos[id]; delete edits[id];
+  Object.keys(days).forEach(k=>{for(const t of TYPES){if(days[k].slots[t.key].id===id){
+    const pool=byType(t.key); days[k].slots[t.key]={id:pool[Math.random()*pool.length|0].id,locked:false}}}});
+  editId=null; await save(); closeAll(); render(); toast('Страву видалено');
+};
+$('#fReset').onclick=async()=>{
+  delete edits[editId]; editId=null; await save(); closeAll(); render(); toast('Повернула як було');
+};
 $('#fSave').onclick=async()=>{
   const name=$('#fName').value.trim();
   if(!name){toast('Впишіть назву страви');$('#fName').focus();return}
   const p=parseInt($('#fProt').value,10);
-  const ing=$('#fIng').value.split(',').map(s=>s.trim()).filter(Boolean).map(n=>[n,0,'']);
+  const ing=textToIng($('#fIng').value);
+  const fb0=parseInt($('#fFib').value,10);
+  if(editId){
+    const patch={name,types:formTypes.slice(),type:formTypes[0],ing,
+      prot:(Number.isFinite(p)&&p>0)?p:find(editId).prot,
+      fib:(Number.isFinite(fb0)&&fb0>=0)?fb0:fiberOf(find(editId))};
+    const base=mine.find(x=>x.id===editId);
+    if(base) Object.assign(base,patch); else edits[editId]=Object.assign({},edits[editId],patch);
+    if(draftPhoto) photos[editId]=draftPhoto;
+    editId=null; queues={}; await save(); closeAll(); render(); toast('Зміни збережено');
+    return;
+  }
   const id='u'+Date.now();
   const t0=formTypes[0];
   const fb=parseInt($('#fFib').value,10);
@@ -950,8 +1024,10 @@ function renderMine(){
     const label=dishTypes(m).map(k=>TYPES.find(t=>t.key===k).label).join(' · ');
     row.innerHTML=(photos[m.id]?'<img src="'+photos[m.id]+'" alt="">':'<div class="ph"></div>')+
       '<div class="nm">'+m.name+'<small>'+label+' · '+m.prot+' г білка · '+fiberOf(m)+' г клітк.</small></div><button class="del" aria-label="Видалити">×</button>';
+    row.querySelector('.nm').onclick=()=>openEdit(m.id);
+    row.querySelector('.nm').style.cursor='pointer';
     row.querySelector('.del').onclick=async()=>{
-      mine=mine.filter(x=>x.id!==m.id); delete photos[m.id];
+      mine=mine.filter(x=>x.id!==m.id); delete photos[m.id]; delete edits[m.id];
       Object.keys(days).forEach(k=>{for(const t of TYPES){if(days[k].slots[t.key].id===m.id){const pool=byType(t.key);days[k].slots[t.key].id=pool[Math.random()*pool.length|0].id}}});
       await save(); renderMine(); render();
     };
