@@ -130,6 +130,13 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .install .it small{display:block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--faint);margin-top:3px}
 .install .go{padding:10px 14px;border-radius:14px;background:var(--black);color:#EFF0EB;font-size:12.5px;flex:none}
 .install .x{color:var(--faint);font-size:17px;padding:4px 6px;flex:none}
+.dg{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:16px;box-shadow:var(--up-s);margin-bottom:8px;font-size:13px}
+.dg .st{width:20px;height:20px;border-radius:7px;flex:none;display:flex;align-items:center;justify-content:center;
+ font-family:'JetBrains Mono',monospace;font-size:11px;background:#D5D7D0;color:var(--soft)}
+.dg.ok .st{background:var(--sage);color:#33392B}
+.dg.bad .st{background:var(--black);color:#EFF0EB}
+.dg .dt{flex:1;min-width:0;line-height:1.4}
+.dg .dt small{display:block;font-size:11px;color:var(--faint);margin-top:3px}
 .stick{position:sticky;top:0;z-index:2;background:var(--bg);padding-bottom:16px;
  box-shadow:0 12px 14px -10px rgba(194,196,190,.9)}
 .stick h2{margin:6px 0 4px}
@@ -287,6 +294,8 @@ input::placeholder{color:#AEB2A9}
     <h2>Встановити Sage</h2>
     <div class="sub" id="howSub"></div>
     <ol class="steps" id="howSteps"></ol>
+    <div class="sec-t">перевірка</div>
+    <div id="diag"></div>
   </div>
 </div>
 
@@ -1000,8 +1009,33 @@ buildChips(); load();
     $('#howSub').textContent=sub;
     $('#howSteps').innerHTML=steps.map(t=>'<li>'+t+'</li>').join('');
     open('#sheetHow');
+    diagnose();
   };
   if(isIOS||inApp) show();
+
+  window.diagnose=async function(){
+    const rows=[];
+    const push=(ok,t,note)=>rows.push({ok,t,note});
+    push(location.protocol==='https:'||location.hostname==='localhost','Захищене зʼєднання (https)','без нього встановлення неможливе');
+    push(standalone,'Зараз відкрито як застосунок',standalone?'усе гаразд':'зараз це вкладка браузера');
+    try{
+      const r=await fetch('manifest.json',{cache:'no-store'});
+      const j=await r.json();
+      push(r.ok&&j.display==='standalone','Файл manifest.json на місці',r.ok?('display: '+j.display):'не знайдено поруч з index.html');
+      const icons=(j.icons||[]).map(i=>i.src);
+      const checks=await Promise.all(icons.map(u=>fetch(u,{method:'HEAD',cache:'no-store'}).then(x=>x.ok).catch(()=>false)));
+      push(checks.length>0&&checks.every(Boolean),'Іконки завантажені',checks.filter(Boolean).length+' з '+icons.length);
+    }catch(e){ push(false,'Файл manifest.json на місці','не вдалося прочитати'); }
+    if('serviceWorker' in navigator){
+      try{
+        const reg=await navigator.serviceWorker.getRegistration();
+        push(!!(reg&&(reg.active||reg.installing)),'Service worker працює',reg?(reg.active?'активний':'встановлюється'):'не зареєстрований — перезавантажте сторінку');
+      }catch(e){ push(false,'Service worker працює','помилка реєстрації'); }
+    } else push(false,'Service worker підтримується','браузер не підтримує');
+    push(!!deferred||standalone,'Chrome готовий встановити',deferred?'кнопка «Встановити» активна':'якщо всі пункти вище зелені — перезавантажте сторінку двічі');
+    $('#diag').innerHTML=rows.map(r=>'<div class="dg '+(r.ok?'ok':'bad')+'"><span class="st">'+(r.ok?'✓':'!')+
+      '</span><span class="dt">'+r.t+'<small>'+r.note+'</small></span></div>').join('');
+  };
 })();
 
 /* офлайн-режим */
