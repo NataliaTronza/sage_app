@@ -149,7 +149,18 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .steps{counter-reset:st;margin:0;padding:0;list-style:none}
 .steps li{position:relative;padding:13px 16px 13px 46px;border-radius:18px;box-shadow:var(--up-s);margin-bottom:9px;font-size:14px;line-height:1.45}
 .steps li:before{counter-increment:st;content:counter(st);position:absolute;left:14px;top:13px;width:20px;height:20px;border-radius:7px;
- background:var(--sage);color:#33392B;font-family:'JetBrains Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center}
+ background:#D5D7D0;color:var(--soft);font-family:'JetBrains Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center}
+.steps li{color:var(--faint)}
+.steps li.now{color:var(--ink);box-shadow:var(--up)}
+.steps li.now:before{background:var(--black);color:#EFF0EB}
+.steps li.done{background:var(--sage);color:#3A4230;box-shadow:none}
+.steps li.done:before{content:'✓';background:#3A4230;color:var(--sage)}
+.nowtag{position:absolute;right:14px;top:14px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+textarea{width:100%;border:0;border-radius:17px;background:var(--bg);box-shadow:var(--in);padding:14px 16px;
+ font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:var(--ink);resize:vertical}
+textarea::placeholder{color:#AEB2A9}
+.where{padding:13px 16px;border-radius:18px;box-shadow:var(--in-s);font-size:13px;line-height:1.45;margin-bottom:16px}
+.where b{font-weight:500}
 .ach-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .ach-head h4{margin:0}
 .more{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);padding:6px 10px;border-radius:12px;box-shadow:var(--up-s)}
@@ -228,10 +239,75 @@ input::placeholder{color:#AEB2A9}
 .toast{position:fixed;left:50%;bottom:104px;transform:translate(-50%,14px);background:var(--black);color:#EFF0EB;padding:12px 20px;
  border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:.24s;z-index:60}
 .toast.on{opacity:1;transform:translate(-50%,0)}
-@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important}}
+/* ---------- рух ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(15px) scale(.986)}to{opacity:1;transform:none}}
+@keyframes inLeft{from{opacity:0;transform:translateX(-50px) rotate(-4deg)}to{opacity:1;transform:none}}
+@keyframes inRight{from{opacity:0;transform:translateX(50px) rotate(4deg)}to{opacity:1;transform:none}}
+@keyframes popIn{0%{opacity:0;transform:scale(.84)}62%{transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+@keyframes keptPulse{0%{transform:scale(1)}38%{transform:scale(1.016)}100%{transform:scale(1)}}
+@keyframes growUp{from{transform:scaleY(.05);opacity:.25}to{transform:scaleY(1);opacity:1}}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(7%,-5%) scale(1.14)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1.06)}50%{transform:translate(-8%,6%) scale(.94)}}
+@keyframes ringOut{from{transform:scale(.35);opacity:.5}to{transform:scale(2.7);opacity:0}}
+@keyframes breathe{0%,100%{opacity:.25}50%{opacity:.85}}
+@keyframes sheen{0%{transform:translateX(-130%)}60%,100%{transform:translateX(240%)}}
+@keyframes nudge{0%,100%{transform:none}30%{transform:translateX(-13px) rotate(-1.2deg)}60%{transform:translateX(5px) rotate(.4deg)}}
+
+.amb{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.amb i{position:absolute;display:block;border-radius:50%;filter:blur(64px);opacity:.5}
+.amb i:nth-child(1){width:66vw;height:66vw;left:-20vw;top:-12vh;background:radial-gradient(circle,#C9D3B4,transparent 70%);animation:drift 28s ease-in-out infinite}
+.amb i:nth-child(2){width:56vw;height:56vw;right:-18vw;bottom:2vh;background:radial-gradient(circle,#DCE0D4,transparent 70%);animation:drift2 34s ease-in-out infinite}
+.wrap{position:relative;z-index:1}
+
+.rise{animation:rise .5s cubic-bezier(.22,1,.36,1) both}
+.card.enterL{animation:inLeft .44s cubic-bezier(.22,1,.36,1) both}
+.card.enterR{animation:inRight .44s cubic-bezier(.22,1,.36,1) both}
+.card.kept{animation:keptPulse .42s ease}
+.card.hint{animation:nudge 1.5s cubic-bezier(.4,0,.2,1) 1.1s 1}
+.ghost{transition:transform .25s cubic-bezier(.22,1,.36,1),opacity .25s}
+
+.dial{position:relative}
+.dial .halo{position:absolute;inset:-7px;border-radius:50%;border:2px solid var(--sage-d);opacity:0;pointer-events:none}
+.dial.goal .halo{animation:breathe 3.4s ease-in-out infinite}
+.dial .core{overflow:hidden}
+.dial .core:after{content:'';position:absolute;top:0;bottom:0;width:34%;
+ background:linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent);animation:sheen 6.5s ease-in-out 2s infinite}
+
+.dbtn{transition:box-shadow .2s,transform .22s cubic-bezier(.22,1,.36,1),background .25s}
+.dbtn.on{transform:translateY(-2px) scale(1.05)}
+.dbtn:active{transform:scale(.95)}
+.btn{transition:box-shadow .13s,transform .13s}
+.btn:active{transform:scale(.972)}
+.bdg.just{animation:popIn .44s cubic-bezier(.22,1,.36,1) both}
+.pbar i{transition:width .7s cubic-bezier(.22,1,.36,1)}
+.bars .col i{transform-origin:bottom;animation:growUp .55s cubic-bezier(.22,1,.36,1) both}
+#prodList.stag .prod{animation:rise .34s cubic-bezier(.22,1,.36,1) both}
+.prod .box{transition:background .22s}
+.prod .box svg{transition:opacity .18s,transform .26s cubic-bezier(.2,1.6,.4,1);transform:scale(.4)}
+.prod.done .box svg{transform:scale(1)}
+.prod .n{transition:color .2s}
+.abadge{animation:rise .36s cubic-bezier(.22,1,.36,1) both}
+
+.celebrate{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;pointer-events:none;padding:24px}
+.celebrate.on{display:flex}
+.celebrate:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(231,232,228,.92),rgba(231,232,228,.55) 55%,rgba(231,232,228,0) 78%);
+ animation:fadeSoft .4s ease both}
+@keyframes fadeSoft{from{opacity:0}to{opacity:1}}
+.cel-card{position:relative;padding:26px 32px;border-radius:30px;background:var(--bg);box-shadow:var(--up);text-align:center;
+ animation:popIn .5s cubic-bezier(.22,1,.36,1) both;max-width:300px}
+.cel-card:before,.cel-card:after{content:'';position:absolute;left:50%;top:50%;width:170px;height:170px;margin:-85px 0 0 -85px;
+ border-radius:50%;border:2px solid var(--sage-d);animation:ringOut 1.2s ease-out forwards}
+.cel-card:after{animation-delay:.2s}
+.cel-ic{font-size:30px;line-height:1;color:var(--sage-d)}
+.cel-t{font-size:17px;font-weight:600;margin-top:11px;line-height:1.3}
+.cel-s{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:7px}
+
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
+ .amb{display:none}}
 </style>
 </head>
 <body>
+<div class="amb" aria-hidden="true"><i></i><i></i></div>
 
 <div class="wrap">
   <div class="head">
@@ -240,7 +316,7 @@ input::placeholder{color:#AEB2A9}
       <div class="day-word" id="dword"></div>
       <div class="kcal" id="kcal"></div>
     </div>
-    <div class="dial" aria-hidden="true">
+    <div class="dial" aria-hidden="true"><span class="halo"></span>
       <svg width="96" height="96" viewBox="0 0 96 96">
         <circle cx="48" cy="48" r="40" fill="none" stroke="#D5D7D0" stroke-width="4"/>
         <circle id="arc" cx="48" cy="48" r="40" fill="none" stroke="#A9B693" stroke-width="4" stroke-linecap="round"
@@ -294,12 +370,26 @@ input::placeholder{color:#AEB2A9}
   </div>
 </div>
 
+<div class="sheet" id="sheetSync" role="dialog" aria-label="Обмін значеннями">
+  <div class="sheet-inner">
+    <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
+    <h2>Білок і клітковина</h2>
+    <div class="sub">скопіюйте список → запитайте в чаті → вставте відповідь</div>
+    <button class="btn wide" id="syncCopy" style="margin-top:0">1 · Скопіювати мої страви</button>
+    <label class="f" for="syncIn">2 · Вставте відповідь сюди</label>
+    <textarea id="syncIn" rows="7" placeholder="u1761... | 28 | 9 | 420"></textarea>
+    <button class="btn wide sage" id="syncApply">3 · Застосувати</button>
+  </div>
+</div>
+
 <div class="sheet" id="sheetHow" role="dialog" aria-label="Як встановити">
   <div class="sheet-inner">
     <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
     <h2>Встановити Sage</h2>
     <div class="sub" id="howSub"></div>
+    <div class="where" id="howWhere"></div>
     <ol class="steps" id="howSteps"></ol>
+    <p class="hint" style="margin:16px 0 0">кроки відмічаються самі — просто відкрийте це вікно знову</p>
     <div class="sec-t">перевірка</div>
     <div id="diag"></div>
   </div>
@@ -336,6 +426,7 @@ input::placeholder{color:#AEB2A9}
       <h2>Мої страви</h2>
       <div class="sub">зʼявляються серед варіантів</div>
       <button class="btn wide sage" id="addNew" style="margin-top:0">+ Додати страву</button>
+      <button class="btn wide" id="openSync" style="margin-top:9px;height:46px;font-size:13px">Порахувати білок і клітковину</button>
     </div>
     <div id="mineList"></div>
   </div>
@@ -363,6 +454,10 @@ input::placeholder{color:#AEB2A9}
     <button class="btn wide" id="fDelete" style="display:none">Видалити страву</button>
     <button class="btn wide" id="fReset" style="display:none">Скинути мої правки</button>
   </div>
+</div>
+
+<div class="celebrate" id="celebrate" aria-hidden="true">
+  <div class="cel-card"><div class="cel-ic"></div><div class="cel-t"></div><div class="cel-s"></div></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -486,6 +581,29 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a
 const key=d=>d.toISOString().slice(0,10);
 const todayKey=()=>key(new Date());
 function addDays(k,n){const d=new Date(k+'T12:00:00');d.setDate(d.getDate()+n);return key(d)}
+function buzz(x){try{navigator.vibrate&&navigator.vibrate(x)}catch(e){}}
+function countTo(el,to){
+  const from=parseInt(el.textContent,10)||0;
+  if(from===to){el.textContent=to;return}
+  const t0=performance.now(),d=520;
+  cancelAnimationFrame(el._raf);
+  const step=now=>{const q=Math.min((now-t0)/d,1),e2=1-Math.pow(1-q,3);
+    el.textContent=Math.round(from+(to-from)*e2);
+    if(q<1) el._raf=requestAnimationFrame(step);};
+  el._raf=requestAnimationFrame(step);
+}
+let celBusy=false;
+function celebrate(ic,t,sub){
+  const el=$('#celebrate');
+  el.querySelector('.cel-ic').textContent=ic;
+  el.querySelector('.cel-t').textContent=t;
+  el.querySelector('.cel-s').textContent=sub||'';
+  el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+  celBusy=true; buzz([16,70,34]);
+  const tt=$('#toast'); tt.classList.remove('on'); clearTimeout(tt._t);
+  clearTimeout(el._t); el._t=setTimeout(()=>{el.classList.remove('on');celBusy=false},2000);
+}
+let firstPaint=true,animSlot=null,animDir=-1,keptSlot=null,lastSel=null,achPrev=null,achKey=null,skipAch=false;
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1900)}
 const WD=['нд','пн','вт','ср','чт','пт','сб'];
 const WDF=['неділя','понеділок','вівторок','середа','четвер','пʼятниця','субота'];
@@ -650,8 +768,15 @@ function renderAch(){
     {on:s.v.size>=4,ic:'✿',t:'Овочі',s:s.v.size+' види'},
     {on:s.fr.size>=1,ic:'✦',t:'Фрукти й ягоди',s:s.fr.size?'є':'немає'}
   ];
-  $('#badges').innerHTML=list.map(b=>
-    '<div class="bdg'+(b.on?' on':'')+'"><span class="ic">'+b.ic+'</span><span class="tx"><b>'+b.t+'</b><span>'+b.s+'</span></span></div>').join('');
+  const state=list.map(b=>b.on?'1':'0').join('');
+  let fresh=-1;
+  if(achKey===sel&&achPrev&&!firstPaint&&!skipAch){
+    for(let i=0;i<state.length;i++) if(state[i]==='1'&&achPrev[i]==='0'){fresh=i;break}
+  }
+  achKey=sel; achPrev=state;
+  $('#badges').innerHTML=list.map((b,i)=>
+    '<div class="bdg'+(b.on?' on':'')+(i===fresh?' just':'')+'"><span class="ic">'+b.ic+'</span><span class="tx"><b>'+b.t+'</b><span>'+b.s+'</span></span></div>').join('');
+  if(fresh>=0&&!celBusy) celebrate(list[fresh].ic,list[fresh].t,'ачівку відкрито');
   const ps=protStreak(), fs=fibStreak();
   if(ps>=2||fs>=2){
     const line=document.createElement('div'); line.className='bdg on'; line.style.gridColumn='1 / -1';
@@ -661,7 +786,9 @@ function renderAch(){
   }
   const p=weekPlants();
   $('#plantN').textContent=p;
-  $('#plantBar').style.width=Math.min(p/30*100,100)+'%';
+  const pb=$('#plantBar'),pw=Math.min(p/30*100,100)+'%';
+  if(firstPaint){pb.style.width='0%';requestAnimationFrame(()=>requestAnimationFrame(()=>{pb.style.width=pw}))}
+  else pb.style.width=pw;
   const di=new Date(sel+'T12:00:00').getDate();
   $('#tip').textContent=TIPS[di%TIPS.length];
 }
@@ -672,7 +799,13 @@ function render(){
   $('#dword').textContent=(sel===todayKey()?'сьогодні · ':sel===addDays(todayKey(),1)?'завтра · ':'')+WDF[d.getDay()]+' · '+d.getDate()+' '+MO[d.getMonth()];
   renderDays();
   const st=dayStats(sel);
-  $('#pnum').textContent=st.prot;
+  countTo($('#pnum'),st.prot);
+  document.querySelector('.dial').classList.toggle('goal',st.prot>=100);
+  if(sel!==lastSel&&!firstPaint){
+    const h=document.querySelector('.head');
+    h.classList.remove('rise'); void h.offsetWidth; h.classList.add('rise');
+  }
+  lastSel=sel;
   $('#kcal').textContent='≈'+st.kcal+' ккал\n≈'+st.fib+' г клітковини';
   $('#kcal').style.whiteSpace='pre-line';
   $('#arc').style.strokeDashoffset=String(251-251*Math.min(st.prot/TARGET,1));
@@ -702,13 +835,31 @@ function render(){
         ((t.key==='lunch'||t.key==='dinner')?'<button class="extra" data-act="left">'+ICON.pot.replace('<svg','<svg style="width:15px;height:15px"')+' Лишки на завтра</button>':'')+
       '</article></div>';
     box.appendChild(sec);
+    const cardEl=sec.querySelector('.card'), idx=TYPES.indexOf(t);
+    if(firstPaint){
+      cardEl.classList.add('rise'); cardEl.style.animationDelay=(60+idx*75)+'ms';
+      if(idx===0&&!s.locked&&!TYPES.some(x=>cur().slots[x.key].locked)) cardEl.classList.add('hint');
+    } else if(animSlot===t.key){
+      cardEl.classList.add(animDir>0?'enterL':'enterR');
+    } else if(keptSlot===t.key){
+      cardEl.classList.add('kept');
+    }
     if(!s.locked) attachSwipe(sec.querySelector('.stack'),t.key);
   }
+  firstPaint=false; animSlot=null; keptSlot=null; skipAch=false;
+
   box.onclick=e=>{
     const b=e.target.closest('[data-act]'); if(!b) return;
     const type=b.closest('.stack').dataset.type, act=b.dataset.act;
-    if(act==='swap'){nextVariant(type);render()}
-    if(act==='keep'){cur().slots[type].locked=true;save();render();updateRecords();toast('Записала')}
+    if(act==='swap'){buzz(9);animSlot=type;animDir=-1;nextVariant(type);render()}
+    if(act==='keep'){
+      cur().slots[type].locked=true; save(); buzz(14);
+      const whole=TYPES.every(x=>cur().slots[x.key].locked);
+      if(whole) skipAch=true;
+      keptSlot=type; render(); updateRecords();
+      if(whole) celebrate('✦','День складено',dayStats(sel).prot+' г білка · '+dayStats(sel).fib+' г клітковини');
+      else toast('Записала');
+    }
     if(act==='unlock'){cur().slots[type].locked=false;save();render()}
     if(act==='photo'){photoTarget=cur().slots[type].id;$('#filePick').click()}
     if(act==='edit'){openEdit(cur().slots[type].id)}
@@ -739,12 +890,18 @@ function attachSwipe(stack,type){
     e.preventDefault();
     card.style.transform='translateX('+dx+'px) rotate('+(dx/34)+'deg)';
     card.style.opacity=String(1-Math.min(Math.abs(dx)/420,.35));
+    const g=stack.querySelector('.ghost');
+    if(g){const k=Math.min(Math.abs(dx)/150,1);
+      g.style.transition='none'; g.style.transform='scale('+(.965+.035*k)+')'; g.style.opacity=String(.7+.3*k);}
   },{passive:false});
   const end=()=>{ if(!on)return; on=false; card.classList.remove('swiping');
-    if(Math.abs(dx)>68){const dir=dx>0?1:-1;
+    const g=stack.querySelector('.ghost');
+    if(Math.abs(dx)>68){const dir=dx>0?1:-1; buzz(11);
       card.style.transform='translateX('+(dir*window.innerWidth)+'px) rotate('+(dir*14)+'deg)';card.style.opacity='0';
-      setTimeout(()=>{nextVariant(type);render()},190);
-    } else {card.style.transform='';card.style.opacity=''} };
+      if(g){g.style.transition='';g.style.transform='scale(1)';g.style.opacity='1'}
+      setTimeout(()=>{animSlot=type;animDir=dir;nextVariant(type);render()},190);
+    } else {card.style.transform='';card.style.opacity='';
+      if(g){g.style.transition='';g.style.transform='';g.style.opacity=''}} };
   card.addEventListener('touchend',end); card.addEventListener('touchcancel',end);
 }
 
@@ -774,14 +931,16 @@ function renderScope(){
   const box=$('#scopeChips'); box.innerHTML='';
   [['day','Цей день'],['all','Усі заплановані']].forEach(([v,l])=>{
     const b=document.createElement('button'); b.className='chip'+(scope===v?' on':''); b.textContent=l;
-    b.onclick=()=>{scope=v;renderProducts()}; box.appendChild(b);
+    b.onclick=()=>{scope=v;renderProducts(true)}; box.appendChild(b);
   });
 }
-function renderProducts(){
+function renderProducts(fresh){
   renderScope();
   const keys=scopeKeys(), g=collect(keys), box=$('#prodList');
   $('#prodSub').textContent=(scope==='day'?'на 1 день':'на '+keys.length+' днів')+' · 4 страви на день';
   box.innerHTML='';
+  box.classList.toggle('stag',!!fresh);
+  let ai=0;
   const bought=cur().bought=cur().bought||[];
   const home=[];
   const mkRow=(it,inPantry)=>{
@@ -792,9 +951,12 @@ function renderProducts(){
     row.querySelector('.home').onclick=e=>{
       e.stopPropagation();
       const i=pantry.indexOf(it.n); if(i<0)pantry.push(it.n); else pantry.splice(i,1);
-      save(); renderProducts();
+      save(); renderProducts(true);
     };
-    row.onclick=()=>{const i=bought.indexOf(kk); if(i<0)bought.push(kk); else bought.splice(i,1); save(); renderProducts()};
+    row.onclick=()=>{const i=bought.indexOf(kk);
+      if(i<0){bought.push(kk);row.classList.add('done');buzz(8)} else {bought.splice(i,1);row.classList.remove('done')}
+      save()};
+    if(fresh) row.style.animationDelay=(ai++*26)+'ms';
     return row;
   };
   ORDER.forEach(cat=>{
@@ -859,8 +1021,45 @@ window.addEventListener('popstate',()=>{ if(sheetOpen){ sheetOpen=false; shut();
 scrim.onclick=closeAll;
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 $('#newDay').onclick=()=>{days[sel]=makeDay(days[sel]);queues[sel]=null;save();render();toast('Нове меню')};
-$('#openProd').onclick=()=>{renderProducts();open('#sheetProd')};
+$('#openProd').onclick=()=>{renderProducts(true);open('#sheetProd')};
 $('#openStats').onclick=()=>{renderStats();open('#sheetStats')};
+$('#openSync').onclick=()=>{shut();setTimeout(()=>{$('#sheetSync').classList.add('on');scrim.classList.add('on')},260)};
+
+function syncText(){
+  if(!mine.length) return '';
+  const L=['SAGE — мої страви. Постав приблизні білок / клітковину / ккал на порцію.',
+           'Формат відповіді, по рядку на страву: id | білок | клітковина | ккал','',];
+  mine.forEach(m=>{
+    const types=dishTypes(m).map(k=>TYPES.find(t=>t.key===k).label).join(', ');
+    const ing=(m.ing||[]).map(([n,q,u])=>q?(n+' '+q+(u?' '+u:'')):n).join(', ');
+    L.push(m.id+' | '+m.name+' | '+types+' | '+(ing||'продукти не вказані'));
+  });
+  return L.join('\n');
+}
+$('#syncCopy').onclick=()=>{
+  const t=syncText();
+  if(!t) return toast('Спершу додайте свої страви');
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>toast('Скопійовано — вставте в чат')).catch(()=>toast('Не вдалося скопіювати'));
+  else toast('Не вдалося скопіювати');
+};
+$('#syncApply').onclick=async()=>{
+  const txt=$('#syncIn').value||''; let n=0;
+  txt.split('\n').forEach(line=>{
+    const parts=line.split('|').map(x=>x.trim());
+    if(parts.length<2) return;
+    const keyRaw=parts[0];
+    const target=mine.find(m=>m.id===keyRaw) ||
+                 mine.find(m=>m.name.toLowerCase()===keyRaw.toLowerCase());
+    if(!target) return;
+    const nums=parts.slice(1).map(x=>parseInt(String(x).replace(/[^0-9-]/g,''),10));
+    if(Number.isFinite(nums[0])&&nums[0]>0) target.prot=nums[0];
+    if(Number.isFinite(nums[1])&&nums[1]>=0) target.fib=nums[1];
+    if(Number.isFinite(nums[2])&&nums[2]>0) target.kcal=nums[2];
+    n++;
+  });
+  if(!n) return toast('Не впізнала жодного рядка');
+  $('#syncIn').value=''; await save(); closeAll(); render(); toast('Оновлено страв: '+n);
+};
 document.querySelector('.dial').onclick=()=>{renderStats();open('#sheetStats')};
 
 function renderStats(){
@@ -882,7 +1081,7 @@ function renderStats(){
     const k=addDays(todayKey(),-i), d=new Date(k+'T12:00:00');
     const has=!!days[k], v=has?dayStats(k).prot:0;
     const h=Math.max(3,Math.min(v/140,1)*100);
-    bars+='<div class="col'+(has?(v>=100?' hit':''):' none')+'"><i style="height:'+(has?h:6)+'%"></i><span>'+d.getDate()+'</span></div>';
+    bars+='<div class="col'+(has?(v>=100?' hit':''):' none')+'"><i style="height:'+(has?h:6)+'%;animation-delay:'+((13-i)*34)+'ms"></i><span>'+d.getDate()+'</span></div>';
   }
   $('#statBars').innerHTML=bars;
 
@@ -907,7 +1106,7 @@ function renderStats(){
     ['▣','Фотоальбом','10 страв із фото',Object.keys(photos).length>=10],
     ['▲','Місяць','20 закритих днів',total>=20]
   ];
-  $('#achList').innerHTML=list.map(a=>'<div class="abadge'+(a[3]?' on':'')+'"><span class="ai">'+a[0]+'</span><span class="at">'+a[1]+'<small>'+a[2]+'</small></span></div>').join('');
+  $('#achList').innerHTML=list.map((a,i)=>'<div class="abadge'+(a[3]?' on':'')+'" style="animation-delay:'+(i*34)+'ms"><span class="ai">'+a[0]+'</span><span class="at">'+a[1]+'<small>'+a[2]+'</small></span></div>').join('');
 }
 $('#openMine').onclick=()=>{renderMine();open('#sheetMine')};
 $('#addNew').onclick=()=>{shut();resetForm();setTimeout(()=>{$('#sheetAdd').classList.add('on');scrim.classList.add('on')},260)};
@@ -1064,26 +1263,34 @@ buildChips(); load();
       if(r&&r.outcome==='accepted') bar.classList.remove('on');
       return;
     }
-    let sub,steps;
-    if(inApp){
-      sub='спершу відкрийте у браузері';
-      steps=['Натисніть ⋮ або «…» у кутку цього вікна.',
-             isIOS?'Оберіть «Відкрити в Safari».':'Оберіть «Відкрити в Chrome» або «Відкрити в браузері».',
-             isIOS?'У Safari натисніть кнопку «Поділитися» внизу.':'У Chrome натисніть ⋮ вгорі праворуч.',
-             isIOS?'Виберіть «На екран «Додому»» → «Додати».':'Виберіть «Встановити застосунок» → «Встановити».'];
-    } else if(isIOS){
-      sub='safari на iphone';
-      steps=['Натисніть кнопку «Поділитися» внизу екрана.',
-             'Прогорніть список і виберіть «На екран «Додому»».',
-             'Натисніть «Додати» — іконка ківі зʼявиться серед застосунків.'];
-    } else {
-      sub='chrome на android';
-      steps=['Натисніть ⋮ вгорі праворуч.',
-             'Виберіть «Встановити застосунок» або «Додати на головний екран».',
-             'Підтвердіть — іконка ківі зʼявиться серед застосунків.'];
-    }
-    $('#howSub').textContent=sub;
-    $('#howSteps').innerHTML=steps.map(t=>'<li>'+t+'</li>').join('');
+    $('#howSub').textContent = isIOS ? 'iphone' : 'android';
+    $('#howWhere').innerHTML = standalone
+      ? 'Зараз ви <b>у встановленому застосунку</b>. Усе готово.'
+      : inApp
+        ? 'Зараз ви <b>у вбудованому вікні іншого застосунку</b> (телеграм, інстаграм тощо). Звідси встановити не можна.'
+        : isIOS
+          ? 'Зараз ви <b>у Safari</b>. Лишився один крок.'
+          : 'Зараз ви <b>у браузері</b>. Лишився один крок.';
+
+    const steps = isIOS ? [
+      ['Відкрити сторінку в Safari','кнопка «поділитися» вгорі → «Відкрити в Safari»', !inApp],
+      ['Кнопка «Поділитися» внизу екрана','квадрат зі стрілкою вгору', standalone],
+      ['«На екран «Додому»» → «Додати»','іконка ківі стане серед застосунків', standalone],
+      ['Відкрити з екрана «Додому»','має бути без адресного рядка', standalone]
+    ] : [
+      ['Відкрити сторінку в Chrome','⋮ або «…» → «Відкрити в браузері»', !inApp],
+      ['Меню ⋮ вгорі праворуч','там пункт «Встановити застосунок»', standalone],
+      ['Підтвердити встановлення','іконка ківі стане серед застосунків', standalone],
+      ['Відкрити з головного екрана','має бути без адресного рядка', standalone]
+    ];
+    let first=true;
+    $('#howSteps').innerHTML=steps.map(function(x){
+      var done=x[2], cls=done?'done':(first?'now':'');
+      if(!done&&first) first=false;
+      return '<li class="'+cls+'">'+x[0]+'<br><small style="opacity:.75">'+x[1]+'</small>'+
+             (cls==='now'?'<span class="nowtag">ви тут</span>':'')+'</li>';
+    }).join('');
+
     open('#sheetHow');
     diagnose();
   };
@@ -1102,13 +1309,14 @@ buildChips(); load();
       const checks=await Promise.all(icons.map(u=>fetch(u,{method:'HEAD',cache:'no-store'}).then(x=>x.ok).catch(()=>false)));
       push(checks.length>0&&checks.every(Boolean),'Іконки завантажені',checks.filter(Boolean).length+' з '+icons.length);
     }catch(e){ push(false,'Файл manifest.json на місці','не вдалося прочитати'); }
+    if(isIOS&&inApp) push(false,'Потрібен Safari','у вбудованому вікні встановлення недоступне');
     if('serviceWorker' in navigator){
       try{
         const reg=await navigator.serviceWorker.getRegistration();
         push(!!(reg&&(reg.active||reg.installing)),'Service worker працює',reg?(reg.active?'активний':'встановлюється'):'не зареєстрований — перезавантажте сторінку');
       }catch(e){ push(false,'Service worker працює','помилка реєстрації'); }
     } else push(false,'Service worker підтримується','браузер не підтримує');
-    push(!!deferred||standalone,'Chrome готовий встановити',deferred?'кнопка «Встановити» активна':'якщо всі пункти вище зелені — перезавантажте сторінку двічі');
+    if(!isIOS) push(!!deferred||standalone,'Chrome готовий встановити',deferred?'кнопка «Встановити» активна':'якщо всі пункти вище зелені — перезавантажте сторінку двічі');
     $('#diag').innerHTML=rows.map(r=>'<div class="dg '+(r.ok?'ok':'bad')+'"><span class="st">'+(r.ok?'✓':'!')+
       '</span><span class="dt">'+r.t+'<small>'+r.note+'</small></span></div>').join('');
   };
