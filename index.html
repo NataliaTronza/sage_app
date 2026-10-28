@@ -187,6 +187,13 @@ textarea::placeholder{color:#AEB2A9}
 .btn.keep{background:var(--sage);box-shadow:4px 4px 9px var(--sh),-4px -4px 9px var(--hi);color:#33392B}
 .btn.keep:active{box-shadow:inset 3px 3px 7px #A2AD8D,inset -3px -3px 7px #E1E9CE}
 .locked-bar{display:flex;align-items:center;gap:9px;margin-top:16px;padding:12px 16px;border-radius:17px;box-shadow:var(--in-s);font-size:13.5px;color:#495041}
+.card.eaten{box-shadow:var(--up),0 0 0 2px var(--sage-d) inset}
+.locked-bar.eat-done{background:var(--sage);box-shadow:none;color:#33392B}
+.locked-bar.eat-done .change{color:#5C6650}
+.btn.eat{width:100%;margin-top:10px}
+.dial.plan .core{background:#6E7468}
+.dial.plan .num{color:#EDEFE8}
+.dial.plan .lbl{color:#C6CFB2}
 .locked-bar .change{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
 .hint{text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.08em;color:var(--faint);margin:22px 0 0}
 
@@ -322,7 +329,7 @@ input::placeholder{color:#AEB2A9}
         <circle id="arc" cx="48" cy="48" r="40" fill="none" stroke="#A9B693" stroke-width="4" stroke-linecap="round"
           stroke-dasharray="251" stroke-dashoffset="251" style="transition:stroke-dashoffset .5s cubic-bezier(.22,1,.36,1)"/>
       </svg>
-      <div class="core"><span class="num" id="pnum">0</span><span class="lbl">білок</span></div>
+      <div class="core"><span class="num" id="pnum">0</span><span class="lbl" id="plbl">білок</span></div>
     </div>
   </div>
 
@@ -336,7 +343,7 @@ input::placeholder{color:#AEB2A9}
   <div class="days" id="days"></div>
 
   <div class="ach">
-    <div class="ach-head"><h4>Ачівки дня</h4><button class="more" id="openStats">статистика →</button></div>
+    <div class="ach-head"><h4>Ачівки дня · зʼїдене</h4><button class="more" id="openStats">статистика →</button></div>
     <div class="badges" id="badges"></div>
     <div class="plants">
       <div class="big"><span id="plantN">0</span><small>/30</small></div>
@@ -401,7 +408,7 @@ input::placeholder{color:#AEB2A9}
     <h2>Статистика</h2>
     <div class="sub" id="statSub"></div>
     <div class="stat-grid" id="statGrid"></div>
-    <div class="sec-t">білок за останні 14 днів</div>
+    <div class="sec-t">зʼїдений білок за 14 днів</div>
     <div class="bars" id="statBars"></div>
     <div class="sec-t" id="topTitle">найчастіші страви</div>
     <div id="topList"></div>
@@ -604,7 +611,7 @@ function celebrate(ic,t,sub){
   clearTimeout(el._t); el._t=setTimeout(()=>{el.classList.remove('on');celBusy=false},2000);
 }
 let firstPaint=true,animSlot=null,animDir=-1,keptSlot=null,lastSel=null,achPrev=null,achKey=null,skipAch=false;
-function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1900)}
+function toast(t){if(celBusy)return; const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1900)}
 const WD=['нд','пн','вт','ср','чт','пт','сб'];
 const WDF=['неділя','понеділок','вівторок','середа','четвер','пʼятниця','субота'];
 const MO=['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
@@ -654,6 +661,12 @@ async function load(){
   try{pantry=JSON.parse(await store.get('menu:pantry'))||[]}catch(e){pantry=[]}
   try{records=JSON.parse(await store.get('menu:records'))||{prot:0,fib:0}}catch(e){records={prot:0,fib:0}}
   try{edits=JSON.parse(await store.get('menu:edits'))||{}}catch(e){edits={}}
+  if(!(await store.get('menu:migratedEat'))){
+    const t0=todayKey();
+    Object.keys(days).forEach(k=>{ if(k<t0){ const d=days[k];
+      if(TYPES.every(t=>d.slots[t.key]&&d.slots[t.key].locked)) TYPES.forEach(t=>{d.slots[t.key].eaten=true}) }});
+    await store.set('menu:migratedEat','1');
+  }
   sel=todayKey(); ensure(sel); render();
 }
 
@@ -668,32 +681,34 @@ function fiberOf(m){
   });
   return Math.round(f);
 }
-function dayStats(k){
+function dayStats(k,onlyEaten){
   const d=ensure(k); let prot=0,kcal=0,fib=0,lp=0;
   const v=new Set(),fr=new Set(),gr=new Set(),plants=new Set();
+  const eaten=TYPES.filter(t=>d.slots[t.key].eaten).length;
   for(const t of TYPES){
+    if(onlyEaten&&!d.slots[t.key].eaten) continue;
     const m=find(d.slots[t.key].id); if(!m) continue;
     prot+=m.prot; kcal+=m.kcal; fib+=fiberOf(m);
     if(d.slots[t.key].locked) lp+=m.prot;
     (m.ing||[]).forEach(([n])=>{const e=ING[n];if(!e)return;
       if(e[1]===V){v.add(n);plants.add(n)} if(e[1]===F){fr.add(n);plants.add(n)} if(e[1]===G){gr.add(n);plants.add(n)}});
   }
-  return {prot,kcal,fib,lp,v,fr,gr,plants};
+  return {prot,kcal,fib,lp,v,fr,gr,plants,eaten};
 }
 function weekPlants(){
   const s=new Set();
-  for(let i=0;i<7;i++){const k=addDays(todayKey(),i); if(days[k]) dayStats(k).plants.forEach(n=>s.add(n))}
+  for(let i=0;i<7;i++){const k=addDays(todayKey(),i); if(days[k]) dayStats(k,true).plants.forEach(n=>s.add(n))}
   return s.size;
 }
 
-function dayDone(k){const d=days[k]; return !!d && TYPES.every(t=>d.slots[t.key].locked)}
+function dayDone(k){const d=days[k]; return !!d && TYPES.every(t=>d.slots[t.key].eaten)}
 function closedDays(){return Object.keys(days).filter(k=>k<=todayKey()&&dayDone(k)).sort()}
 function streakOf(test){
   const t0=todayKey();
-  let start=(days[t0]&&dayDone(t0)&&test(dayStats(t0)))?0:1, n=0;
+  let start=(days[t0]&&dayDone(t0)&&test(dayStats(t0,true)))?0:1, n=0;
   for(let i=start;i<200;i++){
     const k=addDays(t0,-i);
-    if(!days[k]||!dayDone(k)||!test(dayStats(k))) break;
+    if(!days[k]||!dayDone(k)||!test(dayStats(k,true))) break;
     n++;
   }
   return n;
@@ -702,12 +717,12 @@ const protStreak=()=>streakOf(s=>s.prot>=100);
 const fibStreak=()=>streakOf(s=>s.fib>=FIB_TARGET);
 function plantsIn(n){
   const set=new Set();
-  for(let i=0;i<n;i++){const k=addDays(todayKey(),-i); if(days[k]) dayStats(k).plants.forEach(x=>set.add(x))}
+  for(let i=0;i<n;i++){const k=addDays(todayKey(),-i); if(days[k]) dayStats(k,true).plants.forEach(x=>set.add(x))}
   return set.size;
 }
 function avgOf(field,n){
   const ks=closedDays().slice(-n); if(!ks.length) return 0;
-  return Math.round(ks.reduce((a,k)=>a+dayStats(k)[field],0)/ks.length);
+  return Math.round(ks.reduce((a,k)=>a+dayStats(k,true)[field],0)/ks.length);
 }
 function updateRecords(){
   const p=protStreak(), f=fibStreak();
@@ -719,6 +734,7 @@ const ICON={
  cam:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h1.9l1.3-2h6.6l1.3 2h1.9A1.5 1.5 0 0 1 20 8.5v9A1.5 1.5 0 0 1 18.5 19h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.5" r="3.2"/></svg>',
  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>',
  ban:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.4"/><path d="M6.2 17.8 17.8 6.2"/></svg>',
+ fork:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a2.4 2.4 0 0 0 4.8 0V3M8.4 11v10"/><path d="M17.4 3c-1.6 1-2.4 3-2.4 5.2 0 1.6.7 2.6 2.4 2.8V21"/></svg>',
  pot:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16v6.5a3.5 3.5 0 0 1-3.5 3.5h-9A3.5 3.5 0 0 1 4 15.5z"/><path d="M20 11h1.6M4 11H2.4M9 5.5c0 1-1 1-1 2M15 5.5c0 1-1 1-1 2"/></svg>'
 };
 
@@ -760,12 +776,19 @@ function renderCopy(){
   });
 }
 
+function plural(n,one,few,many){
+  const a=Math.abs(n)%100, b=a%10;
+  if(a>10&&a<20) return many;
+  if(b===1) return one;
+  if(b>=2&&b<=4) return few;
+  return many;
+}
 function renderAch(){
-  const s=dayStats(sel);
+  const s=dayStats(sel,true);
   const list=[
-    {on:s.prot>=100,ic:'●',t:'Білок 100+',s:s.prot+' г'},
+    {on:s.prot>=100,ic:'●',t:'Білок 100+',s:s.prot+' г зʼїдено'},
     {on:s.fib>=FIB_TARGET,ic:'❋',t:'Клітковина',s:s.fib+' / '+FIB_TARGET+' г'},
-    {on:s.v.size>=4,ic:'✿',t:'Овочі',s:s.v.size+' види'},
+    {on:s.v.size>=4,ic:'✿',t:'Овочі',s:s.v.size+' '+plural(s.v.size,'вид','види','видів')},
     {on:s.fr.size>=1,ic:'✦',t:'Фрукти й ягоди',s:s.fr.size?'є':'немає'}
   ];
   const state=list.map(b=>b.on?'1':'0').join('');
@@ -796,19 +819,24 @@ function renderAch(){
 function render(){
   const d=new Date(sel+'T12:00:00');
   $('#dnum').textContent=String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0');
-  $('#dword').textContent=(sel===todayKey()?'сьогодні · ':sel===addDays(todayKey(),1)?'завтра · ':'')+WDF[d.getDay()]+' · '+d.getDate()+' '+MO[d.getMonth()];
+  const near=sel===todayKey()?'сьогодні':sel===addDays(todayKey(),1)?'завтра':'';
+  $('#dword').textContent=(near||WDF[d.getDay()])+' · '+d.getDate()+' '+MO[d.getMonth()];
   renderDays();
-  const st=dayStats(sel);
-  countTo($('#pnum'),st.prot);
-  document.querySelector('.dial').classList.toggle('goal',st.prot>=100);
+  const st=dayStats(sel), es=dayStats(sel,true), live=es.eaten>0;
+  const shown=live?es.prot:st.prot;
+  countTo($('#pnum'),shown);
+  const dialEl=document.querySelector('.dial');
+  dialEl.classList.toggle('goal',es.prot>=100);
+  dialEl.classList.toggle('plan',!live);
+  $('#plbl').textContent=live?'білок':'план';
   if(sel!==lastSel&&!firstPaint){
     const h=document.querySelector('.head');
     h.classList.remove('rise'); void h.offsetWidth; h.classList.add('rise');
   }
   lastSel=sel;
-  $('#kcal').textContent='≈'+st.kcal+' ккал\n≈'+st.fib+' г клітковини';
+  $('#kcal').textContent=(live?'зʼїдено ≈'+es.kcal+' ккал\n':'')+'у плані ≈'+st.kcal+' ккал';
   $('#kcal').style.whiteSpace='pre-line';
-  $('#arc').style.strokeDashoffset=String(251-251*Math.min(st.prot/TARGET,1));
+  $('#arc').style.strokeDashoffset=String(251-251*Math.min(shown/TARGET,1));
   renderAch();
 
   const box=$('#slots'); box.innerHTML='';
@@ -819,15 +847,18 @@ function render(){
     sec.innerHTML=
       '<div class="slot-head"><span class="eyebrow">'+t.label+'</span><span class="rule"></span><span class="p-note">'+m.prot+' г білка</span></div>'+
       '<div class="stack" data-type="'+t.key+'">'+(s.locked?'':'<div class="ghost"></div>')+
-      '<article class="card'+(s.locked?' locked':'')+'">'+
+      '<article class="card'+(s.eaten?' eaten':s.locked?' locked':'')+'">'+
         (ph?'<div class="frame"><img class="photo" src="'+ph+'" alt=""></div>':'')+
         '<button class="dishbtn" data-act="edit"><h3 class="dish">'+m.name+'</h3><span class="pen">✎</span></button>'+
         '<p class="note">'+(m.note||'')+'</p>'+
         '<div class="meta"><span class="tag prot">'+m.prot+' Г БІЛКА</span>'+
           (fb>=3?'<span class="tag">'+fb+' Г КЛІТКОВИНИ</span>':'')+
           '<span class="tag">≈'+m.kcal+' ККАЛ</span>'+(m.mine?'<span class="tag mine">МОЯ</span>':'')+'</div>'+
-        (s.locked
-          ?'<div class="locked-bar">'+ICON.check.replace('<svg','<svg style="width:16px;height:16px"')+'<span>Залишаю</span><button class="change" data-act="unlock">змінити</button></div>'
+        (s.eaten
+          ?'<div class="locked-bar eat-done">'+ICON.check.replace('<svg','<svg style="width:16px;height:16px"')+'<span>Зʼїла</span><button class="change" data-act="uneat">скасувати</button></div>'
+          :s.locked
+          ?'<div class="locked-bar">'+ICON.check.replace('<svg','<svg style="width:16px;height:16px"')+'<span>У плані</span><button class="change" data-act="unlock">змінити</button></div>'+
+           '<button class="btn keep eat" data-act="eat">'+ICON.fork.replace('<svg','<svg style="width:16px;height:16px"')+' Зʼїла це</button>'
           :'<div class="actions"><button class="btn" data-act="swap">'+ICON.swap+' Інша</button>'+
            '<button class="btn ic" data-act="photo" aria-label="Фото">'+ICON.cam+'</button>'+
            '<button class="btn ic" data-act="hide" aria-label="Не пропонувати">'+ICON.ban+'</button>'+
@@ -853,14 +884,21 @@ function render(){
     const type=b.closest('.stack').dataset.type, act=b.dataset.act;
     if(act==='swap'){buzz(9);animSlot=type;animDir=-1;nextVariant(type);render()}
     if(act==='keep'){
-      cur().slots[type].locked=true; save(); buzz(14);
-      const whole=TYPES.every(x=>cur().slots[x.key].locked);
+      cur().slots[type].locked=true; save(); buzz(12);
+      keptSlot=type; render();
+      toast(TYPES.every(x=>cur().slots[x.key].locked)?'Меню на день складено':'У плані');
+    }
+    if(act==='eat'){
+      cur().slots[type].eaten=true; cur().slots[type].locked=true; save(); buzz(16);
+      const whole=TYPES.every(x=>cur().slots[x.key].eaten);
       if(whole) skipAch=true;
       keptSlot=type; render(); updateRecords();
-      if(whole) celebrate('✦','День складено',dayStats(sel).prot+' г білка · '+dayStats(sel).fib+' г клітковини');
-      else toast('Записала');
+      const e2=dayStats(sel,true);
+      if(whole) celebrate('✦','День закрито',e2.prot+' г білка · '+e2.fib+' г клітковини');
+      else toast('Зараховано');
     }
-    if(act==='unlock'){cur().slots[type].locked=false;save();render()}
+    if(act==='uneat'){cur().slots[type].eaten=false;save();render();toast('Знято')}
+    if(act==='unlock'){cur().slots[type].locked=false;cur().slots[type].eaten=false;save();render()}
     if(act==='photo'){photoTarget=cur().slots[type].id;$('#filePick').click()}
     if(act==='edit'){openEdit(cur().slots[type].id)}
     if(act==='hide'){
@@ -1064,14 +1102,14 @@ document.querySelector('.dial').onclick=()=>{renderStats();open('#sheetStats')};
 
 function renderStats(){
   const closed=closedDays(), ps=protStreak(), fs=fibStreak();
-  $('#statSub').textContent=closed.length?('закритих днів: '+closed.length):'поки жодного закритого дня';
+  $('#statSub').textContent=closed.length?('повних днів: '+closed.length):'поки жодного повного дня';
   const cells=[
-    ['<span class="v">'+ps+' <small>дн</small></span>','білок 100+ поспіль'+(records.prot>ps?' · рекорд '+records.prot:'')],
-    ['<span class="v">'+fs+' <small>дн</small></span>','клітковина '+FIB_TARGET+'+ поспіль'+(records.fib>fs?' · рекорд '+records.fib:'')],
-    ['<span class="v">'+avgOf('prot',7)+' <small>г</small></span>','середній білок за 7 закритих днів'],
+    ['<span class="v">'+ps+' <small>'+plural(ps,'день','дні','днів')+'</small></span>','білок 100+ поспіль'+(records.prot>ps?' · рекорд '+records.prot:'')],
+    ['<span class="v">'+fs+' <small>'+plural(fs,'день','дні','днів')+'</small></span>','клітковина '+FIB_TARGET+'+ поспіль'+(records.fib>fs?' · рекорд '+records.fib:'')],
+    ['<span class="v">'+avgOf('prot',7)+' <small>г</small></span>','середній білок за 7 повних днів'],
     ['<span class="v">'+avgOf('fib',7)+' <small>г</small></span>','середня клітковина за 7 днів'],
     ['<span class="v">'+plantsIn(30)+'</span>','різних рослин за 30 днів'],
-    ['<span class="v">'+closed.length+'</span>','закритих днів усього']
+    ['<span class="v">'+closed.length+'</span>','повних днів усього']
   ];
   $('#statGrid').innerHTML=cells.map(c=>'<div class="stat">'+c[0]+'<div class="k">'+c[1]+'</div></div>').join('');
 
@@ -1079,7 +1117,7 @@ function renderStats(){
   let bars='';
   for(let i=13;i>=0;i--){
     const k=addDays(todayKey(),-i), d=new Date(k+'T12:00:00');
-    const has=!!days[k], v=has?dayStats(k).prot:0;
+    const es3=days[k]?dayStats(k,true):null, v=es3?es3.prot:0, has=v>0;
     const h=Math.max(3,Math.min(v/140,1)*100);
     bars+='<div class="col'+(has?(v>=100?' hit':''):' none')+'"><i style="height:'+(has?h:6)+'%;animation-delay:'+((13-i)*34)+'ms"></i><span>'+d.getDate()+'</span></div>';
   }
@@ -1096,7 +1134,7 @@ function renderStats(){
   // досягнення
   const total=closed.length, dishes=new Set(); closed.forEach(k=>TYPES.forEach(t=>dishes.add(days[k].slots[t.key].id)));
   const list=[
-    ['✧','Перший день','закрити всі 4 страви за день',total>=1],
+    ['✧','Перший день','відмітити всі 4 страви зʼїденими',total>=1],
     ['◈','Тиждень з білком','7 днів поспіль зі 100+ г білка',Math.max(ps,records.prot)>=7],
     ['◈','Десятка','10 днів поспіль зі 100+ г білка',Math.max(ps,records.prot)>=10],
     ['❋','Клітковина 5 днів','5 днів поспіль по '+FIB_TARGET+'+ г',Math.max(fs,records.fib)>=5],
@@ -1104,7 +1142,7 @@ function renderStats(){
     ['◇','Різноманіття','30 різних страв за весь час',dishes.size>=30],
     ['✎','Своя кухня','5 власних страв у списку',mine.length>=5],
     ['▣','Фотоальбом','10 страв із фото',Object.keys(photos).length>=10],
-    ['▲','Місяць','20 закритих днів',total>=20]
+    ['▲','Місяць','20 повних днів',total>=20]
   ];
   $('#achList').innerHTML=list.map((a,i)=>'<div class="abadge'+(a[3]?' on':'')+'" style="animation-delay:'+(i*34)+'ms"><span class="ai">'+a[0]+'</span><span class="at">'+a[1]+'<small>'+a[2]+'</small></span></div>').join('');
 }
