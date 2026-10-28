@@ -134,6 +134,11 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .sclose{position:absolute;top:14px;right:0;width:38px;height:38px;border-radius:13px;box-shadow:var(--up-s);
  display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--soft);z-index:3;background:var(--bg)}
 .sclose:active{box-shadow:var(--in-s)}
+.est{display:none;margin-top:10px;padding:13px 16px;border-radius:17px;box-shadow:var(--in-s)}
+.est.on{display:block}
+.est b{display:block;font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:500;letter-spacing:.02em}
+.est small{display:block;font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.45}
+.est.warn b{color:#A9662F}
 .dishbtn{display:flex;align-items:center;gap:9px;text-align:left;width:100%}
 .dishbtn .pen{font-size:13px;color:var(--faint);flex:none}
 .dg{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:16px;box-shadow:var(--up-s);margin-bottom:8px;font-size:13px}
@@ -449,7 +454,8 @@ input::placeholder{color:#AEB2A9}
     <label class="f">Прийом їжі — можна кілька</label>
     <div class="chips" id="fType"></div>
     <label class="f" for="fIng">Продукти через кому</label>
-    <input type="text" id="fIng" placeholder="сир, яйця, борошно" autocomplete="off">
+    <input type="text" id="fIng" placeholder="куряче філе, рис, огірок" autocomplete="off">
+    <div class="est" id="fEst"></div>
     <label class="f" for="fProt">Білок, г</label>
     <input type="number" id="fProt" inputmode="numeric" placeholder="необовʼязково" min="0" max="200">
     <label class="f" for="fFib">Клітковина, г</label>
@@ -483,26 +489,78 @@ const TYPES=[{key:'breakfast',label:'Сніданок'},{key:'lunch',label:'Об
 
 /* продукти: [клітковина на 100 г або на штуку, група] */
 const V='v',F='f',G='g',P='p',DR='d';
+/* продукт: [клітковина, група, білок, ккал, типова порція, одиниця]
+   числа на 100 г/мл, якщо одиниця г/мл — інакше на штуку/скибку/ложку */
 const ING={
- 'яйця':[0,P],'сир кисломолочний':[0,DR],'грецький йогурт':[0,DR],'кефір':[0,DR],'ряжанка':[0,DR],'молоко':[0,DR],
- 'вершки':[0,DR],'фета':[0,DR],'бринза':[0,DR],'сир твердий':[0,DR],'сметана':[0,DR],
- 'куряче філе':[0,P],'філе індички':[0,P],'фарш індички':[0,P],'яловичина':[0,P],'телятина':[0,P],'лосось':[0,P],
- 'лосось слабосолений':[0,P],'скумбрія':[0,P],'тунець консервований':[0,P],'філе білої риби':[0,P],'креветки':[0,P],
- 'тофу':[1,G],'едамаме':[5,G],
- 'шпинат':[2.2,V],'помідори':[1.2,V],'огірки':[.8,V],'морква':[1.7,V],'цибуля':[1.5,V],'часник':[.1,V],
- 'броколі':[2.6,V],'капуста':[2.5,V],'квашена капуста':[3,V],'картопля':[2.2,V],'батат':[3,V],'кабачок':[1.5,V],
- 'перець солодкий':[2,V],'селера':[1.6,V],'листя салату':[1.3,V],'зелень':[3,V],'кріп':[3,V],'печериці':[1,V],
- 'спаржа':[2,V],'паростки квасолі':[1.8,V],'оливки':[3,V],'імбир':[2,V],'авокадо':[9,V],'кукурудза':[2.7,V],
- 'лимон':[2.4,F],'банан':[3,F],'яблуко':[4,F],'груша':[5.5,F],'ягоди':[2.5,F],'фініки':[7,F],
- 'вівсяні пластівці':[10,G],'гречка':[10,G],'рис':[1.5,G],'булгур':[12,G],'кіноа':[7,G],'паста':[3,G],
- 'борошно':[3,G],'вівсяне борошно':[8,G],'манка':[2,G],'житній хліб':[1.8,G],'тортильї':[2,G],'хлібці':[1.5,G],
- 'нут':[7,G],'квасоля біла':[6,G],'квасоля червона':[6,G],'сочевиця':[8,G],'волоські горіхи':[6.7,G],
- 'насіння чіа':[34,G],'насіння соняшника':[8.6,G],'арахісова паста':[6,G],'хумус':[6,G],'кунжут':[12,G],'мед':[0,''],
- 'соєвий соус':[0,''],'манго':[1.6,F]
+ 'яйця':[0,P,6.5,78,2,'шт'],'сир кисломолочний':[0,DR,17,121,200,'г'],'грецький йогурт':[0,DR,8,73,200,'г'],
+ 'кефір':[0,DR,3,50,250,'мл'],'ряжанка':[0,DR,3,67,250,'мл'],'молоко':[0,DR,3.2,60,200,'мл'],
+ 'вершки':[0,DR,2.5,205,50,'мл'],'фета':[0,DR,14,264,50,'г'],'бринза':[0,DR,15,260,50,'г'],
+ 'сир твердий':[0,DR,25,350,40,'г'],'сметана':[0,DR,2.6,160,40,'г'],'вершкове масло':[0,DR,0.8,740,10,'г'],
+ 'куряче філе':[0,P,23,110,150,'г'],'філе індички':[0,P,24,115,150,'г'],'фарш індички':[0,P,20,150,150,'г'],
+ 'яловичина':[0,P,21,190,150,'г'],'телятина':[0,P,21,130,150,'г'],'свинина':[0,P,20,240,150,'г'],
+ 'лосось':[0,P,20,200,150,'г'],'лосось слабосолений':[0,P,22,200,60,'г'],'скумбрія':[0,P,18,230,150,'г'],
+ 'тунець консервований':[0,P,24,115,120,'г'],'філе білої риби':[0,P,18,90,180,'г'],'креветки':[0,P,20,99,150,'г'],
+ 'тофу':[1,G,12,120,150,'г'],'едамаме':[5,G,11,120,150,'г'],
+ 'шпинат':[2.2,V,2.9,23,80,'г'],'помідори':[1.2,V,1.1,22,1,'шт'],'огірки':[.8,V,.7,15,1,'шт'],
+ 'морква':[1.7,V,.9,35,1,'шт'],'цибуля':[1.5,V,1.1,40,1,'шт'],'часник':[.1,V,.2,4,2,'зуб'],
+ 'броколі':[2.6,V,2.8,34,150,'г'],'капуста':[2.5,V,1.3,25,200,'г'],'квашена капуста':[3,V,.9,19,150,'г'],
+ 'картопля':[2.2,V,2,77,200,'г'],'батат':[3,V,1.6,86,200,'г'],'кабачок':[1.5,V,1.2,17,1,'шт'],
+ 'перець солодкий':[2,V,1,31,1,'шт'],'селера':[1.6,V,.7,16,50,'г'],'листя салату':[1.3,V,1.4,15,60,'г'],
+ 'зелень':[3,V,3,30,15,'г'],'кріп':[3,V,3.5,43,10,'г'],'печериці':[1,V,3.1,22,150,'г'],
+ 'спаржа':[2,V,2.2,20,150,'г'],'паростки квасолі':[1.8,V,3,30,100,'г'],'оливки':[3,V,.8,145,40,'г'],
+ 'імбир':[2,V,1.8,80,10,'г'],'авокадо':[9,V,3,240,1,'шт'],'кукурудза':[2.7,V,3.3,90,80,'г'],
+ 'гарбуз':[1.5,V,1,26,200,'г'],'буряк':[2.8,V,1.6,43,150,'г'],'баклажан':[3,V,1,25,1,'шт'],
+ 'лимон':[2.4,F,.6,17,1,'шт'],'банан':[3,F,1.3,105,1,'шт'],'яблуко':[4,F,.5,95,1,'шт'],
+ 'груша':[5.5,F,.7,100,1,'шт'],'ягоди':[2.5,F,1,50,100,'г'],'фініки':[7,F,2.5,280,40,'г'],
+ 'манго':[1.6,F,.8,60,150,'г'],'апельсин':[3.1,F,1.2,62,1,'шт'],'ківі':[3,F,1.1,61,1,'шт'],
+ 'вівсяні пластівці':[10,G,13,370,60,'г'],'гречка':[10,G,13,340,70,'г'],'рис':[1.5,G,7,350,70,'г'],
+ 'булгур':[12,G,12,340,70,'г'],'кіноа':[7,G,14,370,70,'г'],'паста':[3,G,12,360,80,'г'],
+ 'борошно':[3,G,10,340,30,'г'],'вівсяне борошно':[8,G,13,370,60,'г'],'манка':[2,G,10,330,30,'г'],
+ 'житній хліб':[1.8,G,2.3,80,2,'скиб'],'тортильї':[2,G,4,150,2,'шт'],'хлібці':[1.5,G,1,37,3,'шт'],
+ 'нут':[7,G,9,160,100,'г'],'квасоля біла':[6,G,8,140,100,'г'],'квасоля червона':[6,G,9,130,100,'г'],
+ 'сочевиця':[8,G,24,350,70,'г'],'волоські горіхи':[6.7,G,15,650,30,'г'],'мигдаль':[12,G,21,580,30,'г'],
+ 'насіння чіа':[34,G,17,490,15,'г'],'насіння соняшника':[8.6,G,21,580,15,'г'],
+ 'арахісова паста':[6,G,25,590,20,'г'],'хумус':[6,G,8,170,100,'г'],'кунжут':[12,G,18,570,10,'г'],
+ 'мед':[0,'',.1,64,1,'ст.л.'],'соєвий соус':[0,'',1.3,9,2,'ст.л.'],'олія':[0,'',0,120,1,'ст.л.'],
+ 'цукор':[0,'',0,40,1,'ст.л.']
 };
+/* як ще можуть назвати той самий продукт */
+const ALIAS={
+ 'курка':'куряче філе','куряча грудка':'куряче філе','курячі грудки':'куряче філе','філе курки':'куряче філе',
+ 'індичка':'філе індички','яйце':'яйця','помідор':'помідори','томати':'помідори','огірок':'огірки',
+ 'йогурт':'грецький йогурт','творог':'сир кисломолочний','сир':'сир кисломолочний','кисломолочний сир':'сир кисломолочний',
+ 'горіхи':'волоські горіхи','вівсянка':'вівсяні пластівці','овсянка':'вівсяні пластівці','хліб':'житній хліб',
+ 'риба':'філе білої риби','гриби':'печериці','салат':'листя салату','петрушка':'зелень','кінза':'зелень',
+ 'базилік':'зелень','чорниця':'ягоди','малина':'ягоди','полуниця':'ягоди','смородина':'ягоди',
+ 'оливкова олія':'олія','соняшникова олія':'олія','масло':'олія','арахісове масло':'арахісова паста',
+ 'рикота':'сир кисломолочний','моцарела':'фета','пармезан':'сир твердий'
+};
+function normIng(n){const k=String(n||'').trim().toLowerCase().replace(/\s+/g,' '); return ALIAS[k]||k;}
+function ingData(n){return ING[normIng(n)]}
+/* оцінка страви зі складу: порції без ваги беремо типові */
+function estimate(ing){
+  let prot=0,kcal=0,fib=0; const unknown=[];
+  (ing||[]).forEach(x=>{
+    const n=x[0]; let q=x[1],u=x[2];
+    const e=ingData(n);
+    if(!e){unknown.push(n);return}
+    if(!q){q=e[4];u=e[5]}
+    const per=(u==='г'||u==='мл')?q/100:q;
+    fib+=(e[0]||0)*per; prot+=(e[2]||0)*per; kcal+=(e[3]||0)*per;
+  });
+  return {prot:Math.round(prot),kcal:Math.round(kcal),fib:Math.round(fib),unknown};
+}
+/* дописати типові порції туди, де ваги немає — щоб і список покупок мав кількості */
+function fillDefaults(ing){
+  return (ing||[]).map(x=>{
+    const e=ingData(x[0]);
+    if(x[1]||!e) return x;
+    return [x[0],e[4],e[5]];
+  });
+}
 const MEAT='мʼясо, риба, білок',DAIRY='молочне та яйця',VEG='овочі й фрукти',GROC='крупи, хліб, бакалія';
 const ORDER=[MEAT,DAIRY,VEG,GROC];
-function catOf(n){const g=(ING[n]||['',''])[1];if(g===P)return MEAT;if(g===DR)return DAIRY;if(g===V||g===F)return VEG;return GROC}
+function catOf(n){const g=(ingData(n)||['',''])[1];if(g===P)return MEAT;if(g===DR)return DAIRY;if(g===V||g===F)return VEG;return GROC}
 
 const D=(id,type,name,note,prot,kcal,ing)=>({id,type,name,note,prot,kcal,ing});
 const BASE=[
@@ -673,13 +731,7 @@ async function load(){
 /* поживність */
 function fiberOf(m){
   if(typeof m.fib==='number') return m.fib;
-  if(!m.ing) return 0;
-  let f=0;
-  m.ing.forEach(([n,q,u])=>{
-    const e=ING[n]; if(!e||!q) return;
-    f+= (u==='г'||u==='мл') ? e[0]*q/100 : e[0]*q;
-  });
-  return Math.round(f);
+  return estimate(m.ing).fib;
 }
 function dayStats(k,onlyEaten){
   const d=ensure(k); let prot=0,kcal=0,fib=0,lp=0;
@@ -690,8 +742,8 @@ function dayStats(k,onlyEaten){
     const m=find(d.slots[t.key].id); if(!m) continue;
     prot+=m.prot; kcal+=m.kcal; fib+=fiberOf(m);
     if(d.slots[t.key].locked) lp+=m.prot;
-    (m.ing||[]).forEach(([n])=>{const e=ING[n];if(!e)return;
-      if(e[1]===V){v.add(n);plants.add(n)} if(e[1]===F){fr.add(n);plants.add(n)} if(e[1]===G){gr.add(n);plants.add(n)}});
+    (m.ing||[]).forEach(([n])=>{const e=ingData(n);if(!e)return;const nn=normIng(n);
+      if(e[1]===V){v.add(nn);plants.add(nn)} if(e[1]===F){fr.add(nn);plants.add(nn)} if(e[1]===G){gr.add(nn);plants.add(nn)}});
   }
   return {prot,kcal,fib,lp,v,fr,gr,plants,eaten};
 }
@@ -951,8 +1003,8 @@ function collect(keys){
     for(const t of TYPES){
       const m=find(d.slots[t.key].id); if(!m||!m.ing) continue;
       m.ing.forEach(([n,q,u])=>{
-        const kk=n+'|'+(u||'');
-        if(!items[kk]) items[kk]={n,u:u||'',q:0};
+        const cn=normIng(n), kk=cn+'|'+(u||'');
+        if(!items[kk]) items[kk]={n:cn,u:u||'',q:0};
         items[kk].q+=q||0;
       });
     }
@@ -1170,7 +1222,7 @@ function resetForm(){editId=null;
   $('#addTitle').textContent='Своя страва';$('#addSub').textContent='назва, прийом їжі, фото';
   $('#fSave').textContent='Зберегти страву';$('#fDelete').style.display='none';$('#fReset').style.display='none';
   formTypes=['breakfast'];draftPhoto=null;$('#fName').value='';$('#fProt').value='';$('#fFib').value='';$('#fIng').value='';
-  $('#fThumb').classList.remove('on');$('#fThumb').removeAttribute('src');buildChips()}
+  $('#fThumb').classList.remove('on');$('#fThumb').removeAttribute('src');buildChips();updateEst()}
 $('#fPhotoBtn').onclick=()=>{photoTarget=null;$('#filePick').click()};
 
 function ingToText(ing){
@@ -1183,6 +1235,20 @@ function textToIng(txt){
     return [x,0,''];
   });
 }
+function updateEst(){
+  const box=$('#fEst'), ing=textToIng($('#fIng').value);
+  if(!ing.length){box.classList.remove('on','warn');box.innerHTML='';
+    $('#fProt').placeholder='необовʼязково';$('#fFib').placeholder='необовʼязково';return}
+  const e=estimate(ing);
+  box.classList.add('on'); box.classList.toggle('warn',e.unknown.length>0);
+  box.innerHTML='<b>≈'+e.prot+' г білка · '+e.fib+' г клітковини · '+e.kcal+' ккал</b>'+
+    (e.unknown.length
+      ? '<small>не впізнала: '+e.unknown.join(', ')+'. Ці продукти не враховані — впишіть білок нижче вручну.</small>'
+      : '<small>продуктам без ваги взяла типові порції. Напишіть «куряче філе 200 г», якщо інакше.</small>');
+  $('#fProt').placeholder='≈'+e.prot; $('#fFib').placeholder='≈'+e.fib;
+}
+$('#fIng').addEventListener('input',updateEst);
+
 function openEdit(id){
   const m=find(id); if(!m) return;
   editId=id; draftPhoto=null;
@@ -1195,6 +1261,7 @@ function openEdit(id){
   $('#fFib').value=fiberOf(m);
   const th=$('#fThumb');
   if(photos[id]){th.src=photos[id];th.classList.add('on')} else {th.classList.remove('on');th.removeAttribute('src')}
+  updateEst();
   $('#fSave').textContent='Зберегти зміни';
   $('#fDelete').style.display=m.mine?'':'none';
   $('#fReset').style.display=(!m.mine&&edits[id])?'':'none';
@@ -1214,12 +1281,14 @@ $('#fSave').onclick=async()=>{
   const name=$('#fName').value.trim();
   if(!name){toast('Впишіть назву страви');$('#fName').focus();return}
   const p=parseInt($('#fProt').value,10);
-  const ing=textToIng($('#fIng').value);
+  const ing=fillDefaults(textToIng($('#fIng').value));
+  const est=estimate(ing);
   const fb0=parseInt($('#fFib').value,10);
   if(editId){
     const patch={name,types:formTypes.slice(),type:formTypes[0],ing,
-      prot:(Number.isFinite(p)&&p>0)?p:find(editId).prot,
-      fib:(Number.isFinite(fb0)&&fb0>=0)?fb0:fiberOf(find(editId))};
+      prot:(Number.isFinite(p)&&p>0)?p:(est.prot>0?est.prot:find(editId).prot),
+      fib:(Number.isFinite(fb0)&&fb0>=0)?fb0:(est.fib>0?est.fib:fiberOf(find(editId))),
+      kcal:est.kcal>0?est.kcal:find(editId).kcal};
     const base=mine.find(x=>x.id===editId);
     if(base) Object.assign(base,patch); else edits[editId]=Object.assign({},edits[editId],patch);
     if(draftPhoto) photos[editId]=draftPhoto;
@@ -1228,11 +1297,10 @@ $('#fSave').onclick=async()=>{
   }
   const id='u'+Date.now();
   const t0=formTypes[0];
-  const fb=parseInt($('#fFib').value,10);
   mine.push({id,type:t0,types:formTypes.slice(),name,note:'',mine:true,ing,
-    prot:(Number.isFinite(p)&&p>0)?p:DEF_P[t0],
-    fib:(Number.isFinite(fb)&&fb>=0)?fb:DEF_F[t0],
-    kcal:DEF_K[t0]});
+    prot:(Number.isFinite(p)&&p>0)?p:(est.prot>0?est.prot:DEF_P[t0]),
+    fib:(Number.isFinite(fb0)&&fb0>=0)?fb0:(est.fib>0?est.fib:DEF_F[t0]),
+    kcal:est.kcal>0?est.kcal:DEF_K[t0]});
   if(draftPhoto) photos[id]=draftPhoto;
   queues={}; await save(); closeAll(); render(); toast('Страва у списку');
 };
