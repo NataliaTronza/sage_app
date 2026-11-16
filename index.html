@@ -119,6 +119,17 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
  justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--faint);letter-spacing:.04em}
 .prod.pantry{opacity:.5}
 .prod.pantry .home{background:var(--sage);box-shadow:none;color:#33392B}
+.namerow{display:none;gap:9px;margin-top:10px}
+.namerow.on{display:flex}
+.namerow input{flex:1;height:50px}
+.namerow .btn{flex:0 0 74px;height:50px}
+.favrow{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:19px;box-shadow:var(--up-s);margin-bottom:10px}
+.favrow .st{flex:none;color:var(--sage-d);font-size:15px}
+.favrow .ft{flex:1;min-width:0;text-align:left}
+.favrow .ft b{display:block;font-size:15px;font-weight:500}
+.favrow .ft small{display:block;font-size:11.5px;color:var(--faint);margin-top:4px;line-height:1.4;
+ overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.favrow .fx{flex:none;color:var(--faint);font-size:18px;padding:6px 8px;line-height:1}
 .copyrow{display:flex;align-items:center;gap:13px;padding:13px 15px;border-radius:19px;box-shadow:var(--up-s);margin-bottom:10px;width:100%;text-align:left}
 .copyrow .cd{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;flex:none;width:46px}
 .copyrow .cn{flex:1;min-width:0;font-size:12.5px;color:var(--soft);line-height:1.45}
@@ -422,11 +433,18 @@ input::placeholder{color:#AEB2A9}
   </div>
 </div>
 
-<div class="sheet" id="sheetCopy" role="dialog" aria-label="Копіювати день">
+<div class="sheet" id="sheetCopy" role="dialog" aria-label="Улюблене і копіювання">
   <div class="sheet-inner">
     <div class="grab"></div><button class="sclose" onclick="closeAll()" aria-label="Закрити">×</button>
-    <h2>Скопіювати день</h2>
+    <h2>Улюблене і копіювання</h2>
     <div class="sub" id="copySub"></div>
+    <div class="chips" id="tplMode"></div>
+    <button class="btn wide sage" id="tplSave">★ Зберегти в улюблені</button>
+    <div class="namerow" id="tplName">
+      <input type="text" id="tplNameIn" placeholder="Назва" autocomplete="off">
+      <button class="btn" id="tplNameOk">Ок</button>
+    </div>
+    <div id="tplFav"></div>
     <div id="copyList"></div>
   </div>
 </div>
@@ -635,7 +653,7 @@ const TIPS=[
  'Зелень майже нічого не важить у калоріях, але добре додає клітковини й вітамінів.'
 ];
 
-let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[],records={prot:0,fib:0},edits={},editId=null;
+let mine=[],photos={},days={},sel=null,queues={},photoTarget=null,draftPhoto=null,scope='day',hidden=[],pantry=[],records={prot:0,fib:0},edits={},editId=null,favDays=[],favWeeks=[],tplMode='day';
 const all=()=>BASE.concat(mine).map(applyEdit);
 const dishTypes=m=>m.types&&m.types.length?m.types:[m.type];
 const applyEdit=m=>edits[m.id]?Object.assign({},m,edits[m.id]):m;
@@ -643,7 +661,7 @@ const byType=t=>{const l=all().filter(m=>dishTypes(m).includes(t)&&!hidden.inclu
 const find=id=>all().find(m=>m.id===id);
 const $=s=>document.querySelector(s);
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
-const key=d=>d.toISOString().slice(0,10);
+const key=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const todayKey=()=>key(new Date());
 function addDays(k,n){const d=new Date(k+'T12:00:00');d.setDate(d.getDate()+n);return key(d)}
 function buzz(x){try{navigator.vibrate&&navigator.vibrate(x)}catch(e){}}
@@ -710,6 +728,8 @@ async function save(){
   await store.set('menu:pantry',JSON.stringify(pantry));
   await store.set('menu:records',JSON.stringify(records));
   await store.set('menu:edits',JSON.stringify(edits));
+  await store.set('menu:favDays',JSON.stringify(favDays));
+  await store.set('menu:favWeeks',JSON.stringify(favWeeks));
 }
 async function load(){
   try{mine=JSON.parse(await store.get('menu:mine'))||[]}catch(e){mine=[]}
@@ -719,6 +739,8 @@ async function load(){
   try{pantry=JSON.parse(await store.get('menu:pantry'))||[]}catch(e){pantry=[]}
   try{records=JSON.parse(await store.get('menu:records'))||{prot:0,fib:0}}catch(e){records={prot:0,fib:0}}
   try{edits=JSON.parse(await store.get('menu:edits'))||{}}catch(e){edits={}}
+  try{favDays=JSON.parse(await store.get('menu:favDays'))||[]}catch(e){favDays=[]}
+  try{favWeeks=JSON.parse(await store.get('menu:favWeeks'))||[]}catch(e){favWeeks=[]}
   if(!(await store.get('menu:migratedEat'))){
     const t0=todayKey();
     Object.keys(days).forEach(k=>{ if(k<t0){ const d=days[k];
@@ -801,32 +823,156 @@ function renderDays(){
     box.appendChild(b);
   }
   const c=document.createElement('button');
-  c.className='dbtn copy'; c.title='Скопіювати день'; c.setAttribute('aria-label','Скопіювати день');
-  c.innerHTML='<div>⧉</div>';
+  c.className='dbtn copy'; c.title='Улюблене і копіювання'; c.setAttribute('aria-label','Улюблене і копіювання');
+  c.innerHTML='<div>★</div>';
   c.onclick=()=>{renderCopy();open('#sheetCopy')};
   box.appendChild(c);
 }
 
-function renderCopy(){
-  const box=$('#copyList'); box.innerHTML='';
-  const d=new Date(sel+'T12:00:00');
-  $('#copySub').textContent='у день '+d.getDate()+' '+MO[d.getMonth()];
-  const keys=Object.keys(days).filter(k=>k!==sel).sort();
-  if(!keys.length){box.innerHTML='<p class="empty">Поки немає інших днів, з яких копіювати. Відкрийте будь-який день у стрічці — і він тут зʼявиться.</p>';return}
-  keys.forEach(k=>{
-    const dd=new Date(k+'T12:00:00');
-    const names=TYPES.map(t=>{const m=find(days[k].slots[t.key].id);return m?m.name:''}).filter(Boolean).join(' · ');
-    const row=document.createElement('button'); row.className='copyrow';
-    row.innerHTML='<span class="cd">'+dd.getDate()+'.'+String(dd.getMonth()+1).padStart(2,'0')+'</span><span class="cn">'+names+'</span>';
-    row.onclick=()=>{
-      const slots={};
-      for(const t of TYPES) slots[t.key]={id:days[k].slots[t.key].id,locked:false};
-      days[sel]={slots,bought:days[sel]?days[sel].bought||[]:[]};
-      queues[sel]=null; save(); closeAll(); render(); toast('Меню скопійовано');
-    };
-    box.appendChild(row);
-  });
+/* ---------- шаблони: улюблені дні й тижні, копіювання ---------- */
+function slotNames(sl){return TYPES.map(t=>{const m=find(sl[t.key]&&sl[t.key].id!==undefined?sl[t.key].id:sl[t.key]);return m?m.name:''}).filter(Boolean).join(' · ')}
+function grabDay(k){const o={};for(const t of TYPES)o[t.key]=days[k].slots[t.key].id;return o}
+function weekKeys(start){const a=[];for(let i=0;i<7;i++)a.push(addDays(start,i));return a}
+function dm(k){const d=new Date(k+'T12:00:00');return d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0')}
+function applySlots(k,src){
+  ensure(k); let skipped=0;
+  for(const t of TYPES){
+    if(!src[t.key]) continue;
+    if(days[k].slots[t.key].eaten){skipped++;continue}
+    days[k].slots[t.key]={id:src[t.key],locked:false,eaten:false};
+  }
+  queues[k]=null; return skipped;
 }
+function doneMsg(skipped){
+  if(!skipped) return 'Готово';
+  return 'Готово, '+skipped+' '+plural(skipped,'зʼїдену страву не чіпала','зʼїдені страви не чіпала','зʼїдених страв не чіпала');
+}
+function weekSources(){
+  const out=[];
+  for(let w=1;w<=8;w++){
+    const st=addDays(sel,-7*w), ks=weekKeys(st).filter(k=>days[k]);
+    if(ks.length>=3) out.push({st,n:ks.length});
+  }
+  return out;
+}
+function favRow(name,sub,onApply,onDel){
+  const row=document.createElement('div'); row.className='favrow';
+  row.innerHTML='<span class="st">★</span><button class="ft"><b></b><small></small></button><button class="fx" aria-label="Видалити">×</button>';
+  row.querySelector('b').textContent=name;
+  row.querySelector('small').textContent=sub;
+  row.querySelector('.ft').onclick=onApply;
+  row.querySelector('.fx').onclick=onDel;
+  return row;
+}
+function renderCopy(){
+  const box=$('#copyList'), fav=$('#tplFav');
+  box.innerHTML=''; fav.innerHTML='';
+  $('#tplName').classList.remove('on');
+
+  const chips=$('#tplMode'); chips.innerHTML='';
+  [['day','День'],['week','Тиждень']].forEach(([v,l])=>{
+    const b=document.createElement('button'); b.className='chip'+(tplMode===v?' on':''); b.textContent=l;
+    b.onclick=()=>{tplMode=v;renderCopy()}; chips.appendChild(b);
+  });
+
+  if(tplMode==='day'){
+    $('#copySub').textContent='день '+dm(sel);
+    $('#tplSave').textContent='★ Зберегти цей день';
+
+    const t=document.createElement('div'); t.className='sec-t';
+    t.textContent='улюблені дні'+(favDays.length?' ('+favDays.length+')':'');
+    fav.appendChild(t);
+    if(!favDays.length){
+      const e=document.createElement('p'); e.className='empty';
+      e.textContent='Складіть день, який вам подобається, і збережіть його кнопкою вище. Потім одним дотиком підставите його в будь-яку дату.';
+      fav.appendChild(e);
+    }
+    favDays.forEach(f=>{
+      fav.appendChild(favRow(f.name,slotNames(f.slots),
+        ()=>{const sk=applySlots(sel,f.slots);save();closeAll();render();toast(doneMsg(sk))},
+        async()=>{favDays=favDays.filter(x=>x.id!==f.id);await save();renderCopy();toast('Видалено')}));
+    });
+
+    const t2=document.createElement('div'); t2.className='sec-t'; t2.textContent='скопіювати з іншого дня';
+    box.appendChild(t2);
+    const keys=Object.keys(days).filter(k=>k!==sel).sort().reverse();
+    if(!keys.length){
+      const e=document.createElement('p'); e.className='empty';
+      e.textContent='Поки немає інших днів. Відкрийте будь-який день у стрічці — і він тут зʼявиться.';
+      box.appendChild(e); return;
+    }
+    keys.forEach(k=>{
+      const row=document.createElement('button'); row.className='copyrow';
+      row.innerHTML='<span class="cd">'+dm(k)+'</span><span class="cn">'+slotNames(days[k].slots)+'</span>';
+      row.onclick=()=>{const sk=applySlots(sel,grabDay(k));save();closeAll();render();toast(doneMsg(sk))};
+      box.appendChild(row);
+    });
+
+  } else {
+    const ks=weekKeys(sel);
+    $('#copySub').textContent='7 днів: '+dm(ks[0])+' – '+dm(ks[6]);
+    $('#tplSave').textContent='★ Зберегти цей тиждень';
+
+    const t=document.createElement('div'); t.className='sec-t';
+    t.textContent='улюблені тижні'+(favWeeks.length?' ('+favWeeks.length+')':'');
+    fav.appendChild(t);
+    if(!favWeeks.length){
+      const e=document.createElement('p'); e.className='empty';
+      e.textContent='Розпишіть тиждень, який вам зайшов, і збережіть його. Потім підставите всі сім днів одразу, починаючи з обраної дати.';
+      fav.appendChild(e);
+    }
+    favWeeks.forEach(f=>{
+      const n=f.days.filter(Boolean).length;
+      fav.appendChild(favRow(f.name,n+' '+plural(n,'день','дні','днів')+(f.from?' · збережено з '+dm(f.from):''),
+        ()=>{let sk=0;f.days.forEach((src,i)=>{if(src)sk+=applySlots(addDays(sel,i),src)});
+             save();closeAll();render();toast(doneMsg(sk))},
+        async()=>{favWeeks=favWeeks.filter(x=>x.id!==f.id);await save();renderCopy();toast('Видалено')}));
+    });
+
+    const t2=document.createElement('div'); t2.className='sec-t'; t2.textContent='скопіювати минулий тиждень';
+    box.appendChild(t2);
+    const srcs=weekSources();
+    if(!srcs.length){
+      const e=document.createElement('p'); e.className='empty';
+      e.textContent='Тут зʼявляться попередні тижні, щойно їх набереться достатньо.';
+      box.appendChild(e); return;
+    }
+    srcs.forEach(w=>{
+      const wk=weekKeys(w.st);
+      const row=document.createElement('button'); row.className='copyrow';
+      row.innerHTML='<span class="cd">'+dm(w.st)+'</span><span class="cn">до '+dm(wk[6])+' · '+w.n+' '+plural(w.n,'день','дні','днів')+'</span>';
+      row.onclick=()=>{let sk=0;wk.forEach((k,i)=>{if(days[k])sk+=applySlots(addDays(sel,i),grabDay(k))});
+        save();closeAll();render();toast(doneMsg(sk))};
+      box.appendChild(row);
+    });
+  }
+}
+
+/* збереження в улюблені */
+$('#tplSave').onclick=()=>{
+  const row=$('#tplName'), inp=$('#tplNameIn');
+  row.classList.add('on');
+  if(tplMode==='day'){
+    const m=find(cur().slots.breakfast.id);
+    inp.value=m?m.name:('День '+dm(sel));
+  } else {
+    inp.value='Тиждень '+dm(sel);
+  }
+  inp.focus(); inp.select();
+};
+$('#tplNameOk').onclick=async()=>{
+  const name=$('#tplNameIn').value.trim();
+  if(!name){toast('Впишіть назву');$('#tplNameIn').focus();return}
+  if(tplMode==='day'){
+    favDays.unshift({id:'fd'+Date.now(),name,slots:grabDay(sel)});
+    await save(); renderCopy(); toast('День в улюблених');
+  } else {
+    const d=weekKeys(sel).map(k=>days[k]?grabDay(k):null);
+    if(!d.some(Boolean)){toast('У цьому тижні ще нічого немає');return}
+    favWeeks.unshift({id:'fw'+Date.now(),name,from:sel,days:d});
+    await save(); renderCopy(); toast('Тиждень в улюблених');
+  }
+};
 
 function plural(n,one,few,many){
   const a=Math.abs(n)%100, b=a%10;
